@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StatCalc Pro - Calculadora de Estadística Descriptiva</title>
+    <title>StatCalc Pro - Calculadora de Estadística Descriptiva 3D</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Lucide Icons & Librerías -->
+    <!-- Librerías de Lucide, Chart.js, PDF, Excel, Supabase, Three.js y Tesseract OCR -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="bg-dark text-light">
 
@@ -25,13 +27,12 @@
             <nav class="nav-menu">
                 <a href="#" class="nav-item active" id="nav-inicio"><i data-lucide="home"></i> Inicio</a>
                 <a href="#" class="nav-item" id="nav-calc"><i data-lucide="calculator"></i> Calculadora</a>
-                <a href="#" class="nav-item"><i data-lucide="history"></i> Historial</a>
+                <a href="#" class="nav-item" id="nav-history"><i data-lucide="history"></i> Historial</a>
                 <a href="#" class="nav-item" id="btn-open-profile-sidebar"><i data-lucide="user"></i> Perfil</a>
-                <a href="#" class="nav-item"><i data-lucide="help-circle"></i> Ayuda</a>
             </nav>
             <div class="sidebar-footer glass-card">
                 <div class="icon-3d-box">📊</div>
-                <p>Las estadísticas transforman datos en decisiones.</p>
+                <p>Estadística descriptiva con aceleración 3D e IA.</p>
             </div>
         </aside>
 
@@ -62,13 +63,12 @@
                         <div class="hero-badges">
                             <span>⚡ Resultados instantáneos</span>
                             <span>📋 Paso a paso detallado</span>
-                            <span>📥 Descarga en múltiples formatos</span>
+                            <span>🤖 Asistente de IA con OCR de imágenes</span>
                         </div>
                         <button class="btn btn-primary btn-glow" id="btn-hero-start">Comenzar ahora →</button>
                     </div>
-                    <div class="hero-3d-graphic">
-                        <div class="floating-laptop-3d">💻📈</div>
-                    </div>
+                    <!-- Lienzo 3D con Three.js -->
+                    <div class="hero-3d-graphic" id="canvas-3d-container"></div>
                 </div>
 
                 <!-- Formulario de Configuración de Datos -->
@@ -85,12 +85,12 @@
                             </button>
                         </div>
 
-                        <h3>2. Ingresa los datos</h3>
-                        <textarea id="data-input" class="glass-input" rows="5" placeholder="12, 15, 18, 20, 22, 25, 28, 30, 32, 35&#10;(Separa los datos con comas o saltos de línea)"></textarea>
+                        <h3>2. Ingresa los datos o arrastra un archivo</h3>
+                        <textarea id="data-input" class="glass-input" rows="5" placeholder="12, 15, 18, 20, 22, 25, 28, 30, 32, 35&#10;(Separa los datos con comas, espacios o saltos de línea)"></textarea>
                         
                         <div class="form-actions">
-                            <button class="btn btn-primary" id="btn-calcular">Calcular</button>
-                            <button class="btn btn-secondary" id="btn-limpiar">Limpiar</button>
+                            <button class="btn btn-primary" id="btn-calcular"><i data-lucide="play"></i> Calcular</button>
+                            <button class="btn btn-secondary" id="btn-limpiar"><i data-lucide="trash-2"></i> Limpiar</button>
                         </div>
                     </div>
 
@@ -104,7 +104,7 @@
                             <label><input type="checkbox" id="chk-media" checked> Media</label>
                             <label><input type="checkbox" id="chk-mediana" checked> Mediana</label>
                             <label><input type="checkbox" id="chk-varianza" checked> Varianza</label>
-                            <label><input type="checkbox" id="chk-desviacion" checked> Desviación estándar (muestral / poblacional)</label>
+                            <label><input type="checkbox" id="chk-desviacion" checked> Desviación estándar</label>
                             <label><input type="checkbox" id="chk-cuartiles" checked> Cuartiles</label>
                             <label><input type="checkbox" id="chk-deciles" checked> Deciles</label>
                             <label><input type="checkbox" id="chk-percentiles" checked> Percentiles</label>
@@ -124,35 +124,28 @@
                     <button class="btn btn-secondary" id="btn-back"><i data-lucide="arrow-left"></i> Volver</button>
                     <h2>Resultados - <span id="results-data-type">Datos no agrupados</span></h2>
                     <div class="dropdown-export">
-                        <button class="btn btn-primary"><i data-lucide="download"></i> Descargar ▼</button>
-                        <div class="dropdown-content">
-                            <a href="#" id="export-png">📷 PNG</a>
-                            <a href="#" id="export-pdf">📄 PDF</a>
-                            <a href="#" id="export-excel">📊 Excel</a>
-                            <a href="#" id="export-csv">📝 CSV</a>
+                        <button class="btn btn-primary" id="btn-export-main"><i data-lucide="download"></i> Descargar ▼</button>
+                        <div class="dropdown-content hidden" id="dropdown-menu">
+                            <a href="#" id="export-pdf">📄 Exportar en PDF</a>
+                            <a href="#" id="export-excel">📊 Exportar en Excel</a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Contenedor dinámico de Tarjetas / Cards -->
-                <div class="cards-grid" id="cards-container">
-                    <!-- Inserción dinámica JS de tarjetas basadas en lo chequeado -->
-                </div>
+                <div class="cards-grid" id="cards-container"></div>
             </section>
         </main>
 
-        <!-- Panel Lateral Deslizante: Modal Paso a Paso -->
+        <!-- Panel Lateral Paso a Paso -->
         <div class="sliding-panel hidden" id="steps-panel">
             <div class="sliding-header">
                 <h3 id="steps-title">Detalle de cálculo</h3>
                 <button class="btn-close" id="btn-close-steps">✕</button>
             </div>
-            <div class="sliding-body" id="steps-content">
-                <!-- Se inyecta la explicación paso a paso aquí -->
-            </div>
+            <div class="sliding-body" id="steps-content"></div>
         </div>
 
-        <!-- Modal de Perfil de Usuario y Sesión -->
+        <!-- Modal de Perfil -->
         <div class="modal-overlay hidden" id="profile-modal">
             <div class="modal-glass">
                 <button class="btn-close modal-close-btn" id="btn-close-profile">✕</button>
@@ -162,28 +155,25 @@
                     <p id="modal-user-email">email@correo.com</p>
                     <span class="badge-premium">👑 Usuario Premium</span>
                 </div>
-                <div class="profile-menu">
-                    <a href="#"><i data-lucide="user"></i> Mi perfil</a>
-                    <a href="#"><i data-lucide="settings"></i> Configuración</a>
-                    <a href="#"><i data-lucide="history"></i> Historial de cálculos</a>
-                    <a href="#"><i data-lucide="help-circle"></i> Ayuda</a>
-                </div>
                 <button class="btn btn-danger btn-block" id="btn-logout"><i data-lucide="log-out"></i> Cerrar sesión</button>
             </div>
         </div>
 
-        <!-- Widget Flotante del Chat de IA (Asistente Estadístico) -->
+        <!-- Widget Flotante del Chat con IA -->
         <div class="ai-chat-widget">
-            <button class="ai-fab-btn" id="btn-toggle-chat">🤖</button>
+            <button class="ai-fab-btn" id="btn-toggle-chat" aria-label="Abrir Asistente">🤖</button>
             <div class="ai-chat-window hidden" id="ai-chat-window">
                 <div class="chat-header">
-                    <span>✨ IA StatCalc Assistant</span>
+                    <span>✨ StatCalc AI Controller</span>
                     <button id="btn-close-chat">✕</button>
                 </div>
                 <div class="chat-messages" id="chat-messages">
-                    <div class="msg msg-ai">¡Hola! Dame un problema o una lista de datos estadísticos y configuraré la calculadora o resolveré todo por ti automáticamente.</div>
+                    <div class="msg msg-ai">¡Hola! Envíame texto, un archivo de datos o la foto de tu cuaderno/ejercicio para procesarlo y controlar la interfaz en tiempo real.</div>
                 </div>
                 <div class="chat-input-area">
+                    <label for="chat-file-input" class="btn-icon-attach" title="Subir imagen o archivo">📷
+                        <input type="file" id="chat-file-input" accept="image/*,.txt,.csv" style="display:none;">
+                    </label>
                     <input type="text" id="chat-input" placeholder="Ej: Calcula la media y varianza de 12, 15, 18, 20...">
                     <button id="btn-send-chat">Send</button>
                 </div>
