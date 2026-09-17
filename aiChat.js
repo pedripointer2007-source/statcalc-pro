@@ -10,14 +10,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const fileInput = document.getElementById("chat-file-input");
     const typingIndicator = document.getElementById("ai-typing-indicator");
 
-    // Memoria conversacional
     let conversationState = {
         lastData: [],
         lastMeasure: null
     };
 
     function escapeHTML(str) {
-        return str.replace(/[&<>'"]/g, 
+        return String(str).replace(/[&<>'"]/g,
             tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
     }
 
@@ -41,12 +40,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (textarea) {
             textarea.value = numbers.join(", ");
         }
-
         if (forceCalculate) {
             const btnCalc = document.getElementById("btn-calcular");
-            if (btnCalc) {
-                setTimeout(() => btnCalc.click(), 200);
-            }
+            if (btnCalc) setTimeout(() => btnCalc.click(), 200);
         }
     }
 
@@ -59,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => {
             if (typingIndicator) typingIndicator.classList.add("hidden");
 
-            // Si se ingresan nuevos datos numéricos
+            // Nuevos datos
             if (extractedNums.length >= 2) {
                 conversationState.lastData = extractedNums;
                 applyToCalculator(extractedNums, true);
@@ -67,44 +63,65 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // Si se solicita una medida usando los últimos datos en memoria
+            // Medidas usando datos en memoria
             if (conversationState.lastData.length >= 2) {
                 const nums = conversationState.lastData;
                 const calculated = StatsEngine.calculateNoAgrupados(nums);
 
                 if (textLower.includes("media") || textLower.includes("promedio")) {
-                    addMessage(`<b>Media (x̄):</b> ${calculated.media.val}<br>${calculated.media.steps.join("<br>")}`);
+                    addMessage(`<b>Media (x̄):</b> ${calculated.media.val}<br><br>${calculated.media.steps.join("<br>")}`);
                     return;
                 }
                 if (textLower.includes("mediana")) {
-                    addMessage(`<b>Mediana:</b> ${calculated.mediana.val}<br>${calculated.mediana.steps.join("<br>")}`);
+                    addMessage(`<b>Mediana:</b> ${calculated.mediana.val}<br><br>${calculated.mediana.steps.join("<br>")}`);
                     return;
                 }
                 if (textLower.includes("varianza")) {
-                    addMessage(`<b>Varianza (s²):</b> ${calculated.varianza.val}<br>${calculated.varianza.steps.join("<br>")}`);
+                    addMessage(`<b>Varianza (s²):</b> ${calculated.varianza.val}<br><br>${calculated.varianza.steps.join("<br>")}`);
                     return;
                 }
-                if (textLower.includes("cuartil") || textLower.includes("q3") || textLower.includes("q1")) {
-                    addMessage(`<b>Cuartiles:</b> ${calculated.cuartiles.val}`);
+                if (textLower.includes("desviacion") || textLower.includes("desviación")) {
+                    addMessage(`<b>Desviación estándar:</b> ${calculated.desviacion.val}<br><br>${calculated.desviacion.steps.join("<br>")}`);
+                    return;
+                }
+                if (textLower.includes("cuartil") || textLower.includes("q1") || textLower.includes("q3")) {
+                    addMessage(`<b>Cuartiles:</b> ${calculated.cuartiles.val}<br><br>${calculated.cuartiles.steps.join("<br>")}`);
                     return;
                 }
                 if (textLower.includes("rango")) {
-                    addMessage(`<b>Rango:</b> ${calculated.rango.val}`);
+                    addMessage(`<b>Rango:</b> ${calculated.rango.val}<br><br>${calculated.rango.steps.join("<br>")}`);
                     return;
                 }
                 if (textLower.includes("kurtosis") || textLower.includes("curtosis")) {
-                    addMessage(`<b>Kurtosis:</b> ${calculated.kurtosis.val}`);
+                    addMessage(`<b>Kurtosis:</b> ${calculated.kurtosis.val}<br><br>${calculated.kurtosis.steps.join("<br>")}`);
+                    return;
+                }
+                if (textLower.includes("fisher") || textLower.includes("asimetria")) {
+                    addMessage(`<b>Fisher:</b> ${calculated.fisher.val}<br><br>${calculated.fisher.steps.join("<br>")}`);
+                    return;
+                }
+                if (textLower.includes("moda")) {
+                    addMessage(`<b>Moda:</b> ${calculated.moda.val}<br><br>${calculated.moda.steps.join("<br>")}`);
+                    return;
+                }
+                if (textLower.includes("tabla") || textLower.includes("frecuencia")) {
+                    addMessage(`<b>Tabla de frecuencias generada.</b><br>Revisa el panel de resultados. Se incluyen las columnas de momentos si tienes marcadas Varianza, Fisher o Kurtosis.`);
+                    applyToCalculator(nums, true);
                     return;
                 }
             }
 
             // Explicaciones conceptuales
             if (textLower.includes("kurtosis") || textLower.includes("curtosis")) {
-                addMessage("La <b>Kurtosis</b> mide el grado de concentración de los datos alrededor de la zona central de la distribución de frecuencias.");
+                addMessage("La <b>Kurtosis</b> (o curtosis) mide el grado de apuntamiento y el peso de las colas de la distribución. Un valor cercano a 0 indica distribución mesocúrtica (similar a la normal).");
+                return;
+            }
+            if (textLower.includes("fisher")) {
+                addMessage("El <b>coeficiente de Fisher</b> mide la asimetría de la distribución. Valores cercanos a 0 indican simetría.");
                 return;
             }
 
-            if (textLower.includes("dame datos") || textLower.includes("prueba")) {
+            if (textLower.includes("dame datos") || textLower.includes("prueba") || textLower.includes("ejemplo")) {
                 const testData = [10, 15, 20, 25, 30, 35, 40];
                 conversationState.lastData = testData;
                 applyToCalculator(testData, true);
@@ -112,10 +129,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            addMessage("Entendido. Puedes enviarme datos o pedirme cálculos específicos sobre los datos actuales.");
-        }, 500);
+            addMessage("Entendido. Puedes enviarme datos numéricos o pedirme cálculos específicos (media, mediana, varianza, tabla de frecuencias, etc.).");
+        }, 450);
     }
 
+    // OCR
     if (fileInput) {
         fileInput.addEventListener("change", async (e) => {
             const file = e.target.files[0];
@@ -143,8 +161,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    if (toggleBtn && chatWindow) toggleBtn.addEventListener("click", () => chatWindow.classList.toggle("hidden"));
-    if (closeBtn && chatWindow) closeBtn.addEventListener("click", () => chatWindow.classList.add("hidden"));
+    // Eventos del chat
+    if (toggleBtn && chatWindow) {
+        toggleBtn.addEventListener("click", () => chatWindow.classList.toggle("hidden"));
+    }
+    if (closeBtn && chatWindow) {
+        closeBtn.addEventListener("click", () => chatWindow.classList.add("hidden"));
+    }
 
     if (sendBtn) {
         sendBtn.addEventListener("click", () => {
@@ -158,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (chatInput) {
         chatInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") sendBtn.click();
+            if (e.key === "Enter") sendBtn?.click();
         });
     }
 });

@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     init3DScene();
     setupNavigation();
 
-    // Selectores tipo de dato
+    // Tipo de datos
     document.getElementById('type-no-agrupados')?.addEventListener('click', () => {
         currentDataType = 'no_agrupados';
         document.getElementById('type-no-agrupados').classList.add('active');
@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('type-no-agrupados').classList.remove('active');
     });
 
-    // Limpieza
+    // Limpiar
     document.getElementById('btn-limpiar')?.addEventListener('click', () => {
         document.getElementById('data-input').value = "";
         document.getElementById('project-name-input').value = "";
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('data-input')?.focus();
     });
 
-    // Botón Calcular
+    // ========== BOTÓN CALCULAR ==========
     document.getElementById('btn-calcular')?.addEventListener('click', async () => {
         const rawInput = document.getElementById('data-input').value;
         const cleanNumbers = rawInput.split(/[\n,;\s]+/).map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         currentResults = StatsEngine.calculateNoAgrupados(cleanNumbers);
         renderResultsCards(currentResults);
-        renderFrequencyTable(currentResults.tabla?.data);
+        renderFrequencyTable(currentResults);
 
         const selectedChecklist = getSelectedChecklist();
 
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         switchView('view-results');
     });
 
-    // Guardar Proyecto / En Proceso
+    // Guardar Proyecto
     document.getElementById('btn-save-project')?.addEventListener('click', async () => {
         const name = document.getElementById('project-name-input').value.trim() || 'Proyecto sin título';
         const rawInput = document.getElementById('data-input').value;
@@ -64,6 +64,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof saveProjectToSupabase === 'function') {
             await saveProjectToSupabase(name, currentDataType, rawInput);
             alert(`Proyecto "${name}" guardado exitosamente.`);
+        } else {
+            alert("Función de guardado no disponible en este momento.");
         }
     });
 
@@ -90,24 +92,97 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof logout === 'function') logout();
     });
 
-    // Exportación
+    // ========== EXPORTACIÓN ==========
     document.getElementById('btn-export-main')?.addEventListener('click', () => {
-        document.getElementById('dropdown-menu').classList.toggle('hidden');
+        document.getElementById('dropdown-menu')?.classList.toggle('hidden');
     });
 
+    // Excel
     document.getElementById('export-excel')?.addEventListener('click', (e) => {
         e.preventDefault();
-        if (!currentResults) return;
+        if (!currentResults) {
+            alert("Primero realiza un cálculo.");
+            return;
+        }
+
         const dataToExport = Object.keys(currentResults)
             .filter(k => k !== 'tabla')
-            .map(k => ({ Medida: k.toUpperCase(), Resultado: currentResults[k].val }));
+            .map(k => ({
+                Medida: k.toUpperCase(),
+                Resultado: currentResults[k].val
+            }));
+
+        // También exportar la tabla de frecuencias
+        if (currentResults.tabla?.data) {
+            dataToExport.push({});
+            dataToExport.push({ Medida: "TABLA DE FRECUENCIAS", Resultado: "" });
+            currentResults.tabla.data.forEach(row => {
+                dataToExport.push({
+                    Medida: `X=${row.valor}`,
+                    Resultado: `fi=${row.fi} | Fi=${row.Fi} | %=${row.pct} | xi·fi=${row.xiFi}`
+                });
+            });
+        }
+
         const ws = XLSX.utils.json_to_sheet(dataToExport);
         const wb = XLSX.utils.book_new();
-        XLSX.writeFile(wb, "Resultados_Estadistica.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Resultados");
+        XLSX.writeFile(wb, "Resultados_StatCalc.xlsx");
+    });
+
+    // PDF
+    document.getElementById('export-pdf')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!currentResults) {
+            alert("Primero realiza un cálculo.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(18);
+        doc.text("StatCalc Pro - Resultados Estadísticos", 14, 20);
+
+        doc.setFontSize(11);
+        let y = 35;
+
+        Object.keys(currentResults).forEach(key => {
+            if (key === 'tabla') return;
+            const item = currentResults[key];
+            if (y > 270) {
+                doc.addPage();
+                y = 20;
+            }
+            doc.setFont(undefined, 'bold');
+            doc.text(`${key.toUpperCase()}: ${item.val}`, 14, y);
+            y += 8;
+        });
+
+        // Tabla de frecuencias
+        if (currentResults.tabla?.data) {
+            y += 10;
+            doc.setFont(undefined, 'bold');
+            doc.text("Tabla de Frecuencias", 14, y);
+            y += 8;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(9);
+
+            currentResults.tabla.data.forEach(row => {
+                if (y > 275) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.text(`X=${row.valor} | xi=${row.xi} | fi=${row.fi} | Fi=${row.Fi} | %=${row.pct} | xi·fi=${row.xiFi}`, 14, y);
+                y += 6;
+            });
+        }
+
+        doc.save("Resultados_StatCalc.pdf");
     });
 });
 
-// Navegación Sidebar Funcional
+// ========== NAVEGACIÓN ==========
 function setupNavigation() {
     const navs = [
         { btn: 'nav-inicio', view: 'view-input' },
@@ -120,7 +195,7 @@ function setupNavigation() {
         document.getElementById(item.btn)?.addEventListener('click', (e) => {
             e.preventDefault();
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(item.btn).classList.add('active');
+            document.getElementById(item.btn)?.classList.add('active');
             switchView(item.view);
             if (item.action) item.action();
         });
@@ -137,6 +212,7 @@ function getSelectedChecklist() {
     return mapChecklist.filter(id => document.getElementById(`chk-${id}`)?.checked);
 }
 
+// ========== TARJETAS DE RESULTADOS ==========
 function renderResultsCards(results) {
     const container = document.getElementById('cards-container');
     if (!container) return;
@@ -175,46 +251,90 @@ function renderResultsCards(results) {
     });
 }
 
-function renderFrequencyTable(dataRows) {
+// ========== TABLA DE FRECUENCIAS AVANZADA ==========
+function renderFrequencyTable(results) {
     const container = document.getElementById('table-results-container');
-    if (!container || !dataRows || !document.getElementById('chk-tabla')?.checked) {
+    if (!container || !results?.tabla?.data || !document.getElementById('chk-tabla')?.checked) {
         if (container) container.innerHTML = "";
         return;
     }
 
-    const showFi = document.getElementById('col-fi')?.checked;
-    const showFiAcc = document.getElementById('col-Fi-acc')?.checked;
-    const showFr = document.getElementById('col-fr')?.checked;
-    const showFrAcc = document.getElementById('col-Fr-acc')?.checked;
-    const showPct = document.getElementById('col-pct')?.checked;
+    const dataRows = results.tabla.data;
 
-    let html = `<h3>Tabla de Frecuencias</h3><table class="data-table"><thead><tr><th>Dato (X)</th>`;
-    if (showFi) html += `<th>fi</th>`;
-    if (showFiAcc) html += `<th>Fi</th>`;
-    if (showFr) html += `<th>fr</th>`;
-    if (showFrAcc) html += `<th>Fr</th>`;
-    if (showPct) html += `<th>%</th>`;
-    html += `</tr></thead><tbody>`;
+    // Columnas básicas siempre
+    const showFi = document.getElementById('col-fi')?.checked ?? true;
+    const showFiAcc = document.getElementById('col-Fi-acc')?.checked ?? true;
+    const showPct = document.getElementById('col-pct')?.checked ?? true;
+
+    // Columnas de momentos (solo si la medida está marcada)
+    const showVar = document.getElementById('chk-varianza')?.checked;
+    const showFisher = document.getElementById('chk-fisher')?.checked;
+    const showKurtosis = document.getElementById('chk-kurtosis')?.checked;
+
+    let html = `
+        <h3>Tabla de Frecuencias</h3>
+        <div style="overflow-x:auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Dato (X)</th>
+                    <th>Marca de clase (xi)</th>
+                    ${showFi ? '<th>fi</th>' : ''}
+                    ${showFiAcc ? '<th>Fi</th>' : ''}
+                    ${showPct ? '<th>%</th>' : ''}
+                    <th>xi · fi</th>
+                    ${showVar ? '<th>(xi − x̄)² · fi</th>' : ''}
+                    ${showFisher ? '<th>(xi − x̄)³ · fi</th>' : ''}
+                    ${showKurtosis ? '<th>(xi − x̄)⁴ · fi</th>' : ''}
+                </tr>
+            </thead>
+            <tbody>
+    `;
 
     dataRows.forEach(row => {
-        html += `<tr><td><b>${row.valor}</b></td>`;
-        if (showFi) html += `<td>${row.fi}</td>`;
-        if (showFiAcc) html += `<td>${row.Fi}</td>`;
-        if (showFr) html += `<td>${row.fr}</td>`;
-        if (showFrAcc) html += `<td>${row.Fr}</td>`;
-        if (showPct) html += `<td>${row.pct}</td>`;
-        html += `</tr>`;
+        html += `<tr>
+            <td><b>${row.valor}</b></td>
+            <td>${row.xi}</td>
+            ${showFi ? `<td>${row.fi}</td>` : ''}
+            ${showFiAcc ? `<td>${row.Fi}</td>` : ''}
+            ${showPct ? `<td>${row.pct}</td>` : ''}
+            <td>${row.xiFi}</td>
+            ${showVar ? `<td>${row.desv2}</td>` : ''}
+            ${showFisher ? `<td>${row.desv3}</td>` : ''}
+            ${showKurtosis ? `<td>${row.desv4}</td>` : ''}
+        </tr>`;
     });
 
-    html += `</tbody></table>`;
+    // Fila de totales
+    html += `<tr style="background:rgba(99,102,241,0.15); font-weight:bold;">
+        <td colspan="2">TOTALES</td>
+        ${showFi ? `<td>${dataRows.reduce((a, r) => a + r.fi, 0)}</td>` : ''}
+        ${showFiAcc ? '<td>—</td>' : ''}
+        ${showPct ? '<td>100%</td>' : ''}
+        <td>${results.tabla.sumXiFi}</td>
+        ${showVar ? `<td>${results.tabla.sumXiFi2}</td>` : ''}
+        ${showFisher ? `<td>${results.tabla.sumXiFi3}</td>` : ''}
+        ${showKurtosis ? `<td>${results.tabla.sumXiFi4}</td>` : ''}
+    </tr>`;
+
+    html += `</tbody></table></div>`;
+
+    // Nota explicativa
+    if (showVar || showFisher || showKurtosis) {
+        html += `<p style="margin-top:12px; font-size:0.85rem; color:var(--text-muted);">
+            <i>Las columnas de momentos solo se muestran porque seleccionaste Varianza / Fisher / Kurtosis.</i>
+        </p>`;
+    }
+
     container.innerHTML = html;
 }
 
+// ========== PASOS DETALLADOS ==========
 function showSteps(title, steps) {
     document.getElementById('steps-title').innerText = `Desglose - ${title}`;
     const content = document.getElementById('steps-content');
     content.innerHTML = steps.map((s, idx) => `
-        <div class="step-box" style="margin-bottom: 12px;">
+        <div class="step-box" style="margin-bottom: 14px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
             <div>${s}</div>
         </div>
     `).join('');
@@ -222,9 +342,10 @@ function showSteps(title, steps) {
 }
 
 document.getElementById('btn-close-steps')?.addEventListener('click', () => {
-    document.getElementById('steps-panel').classList.add('hidden');
+    document.getElementById('steps-panel')?.classList.add('hidden');
 });
 
+// ========== PROYECTOS E HISTORIAL ==========
 async function loadUserProjects() {
     const container = document.getElementById('projects-list-container');
     if (!container) return;
@@ -259,7 +380,7 @@ async function loadUserHistory() {
             <div class="stat-card">
                 <h4>Cálculo (${h.data_type})</h4>
                 <p style="font-size:0.8rem; color: var(--text-muted);">${new Date(h.created_at).toLocaleDateString()}</p>
-                <p><strong>Datos:</strong> ${h.input_data.substring(0, 30)}...</p>
+                <p><strong>Datos:</strong> ${h.input_data.substring(0, 40)}...</p>
             </div>
         `).join('');
     }
@@ -271,6 +392,7 @@ function loadProjectData(dataText) {
     document.getElementById('nav-inicio')?.click();
 }
 
+// ========== ESCENA 3D ==========
 function init3DScene() {
     const container = document.getElementById('canvas-3d-container');
     if (!container) return;
@@ -283,7 +405,12 @@ function init3DScene() {
     container.appendChild(renderer.domElement);
 
     const geometry = new THREE.IcosahedronGeometry(2, 0);
-    const material = new THREE.MeshPhongMaterial({ color: 0x6366f1, wireframe: true, emissive: 0x38bdf8, emissiveIntensity: 0.2 });
+    const material = new THREE.MeshPhongMaterial({
+        color: 0x6366f1,
+        wireframe: true,
+        emissive: 0x38bdf8,
+        emissiveIntensity: 0.2
+    });
 
     const cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
