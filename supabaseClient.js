@@ -82,8 +82,10 @@ async function loadProfileStats() {
     try {
         const projects = await fetchProjectsFromSupabase();
         const history = await fetchHistoryFromSupabase();
-        document.getElementById('stat-count-projects').innerText = projects.length;
-        document.getElementById('stat-count-calcs').innerText = history.length;
+        const elProj = document.getElementById('stat-count-projects');
+        const elCalcs = document.getElementById('stat-count-calcs');
+        if (elProj) elProj.innerText = projects.length;
+        if (elCalcs) elCalcs.innerText = history.length;
     } catch (e) {}
 }
 
@@ -93,24 +95,49 @@ document.addEventListener("DOMContentLoaded", () => {
         loginWithGoogle();
     });
 
+    const userAvatarBtn = document.getElementById('btn-user-avatar');
+    const userModal = document.getElementById('user-modal');
+    const closeModalBtn = document.getElementById('btn-close-modal');
+    const logoutBtn = document.getElementById('btn-logout');
+
+    if (userAvatarBtn && userModal) {
+        userAvatarBtn.addEventListener('click', () => {
+            userModal.classList.remove('hidden');
+            loadProfileStats();
+        });
+    }
+
+    if (closeModalBtn && userModal) {
+        closeModalBtn.addEventListener('click', () => {
+            userModal.classList.add('hidden');
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session && session.user) {
             const meta = session.user.user_metadata || {};
             const name = meta.full_name || meta.name || 'Usuario';
-            const avatar = meta.avatar_url || meta.picture || '';
+            const avatar = meta.avatar_url || meta.picture || 'https://via.placeholder.com/90';
 
             const btnLoginEl = document.getElementById('btn-login-google');
             const btnAvatar = document.getElementById('btn-user-avatar');
             const userPhoto = document.getElementById('user-photo');
 
-            // Ocultar botón de Google al iniciar sesión correctamente
             if (btnLoginEl) btnLoginEl.classList.add('hidden');
             if (btnAvatar) btnAvatar.classList.remove('hidden');
             if (userPhoto && avatar) userPhoto.src = avatar;
 
-            document.getElementById('modal-user-img').src = avatar;
-            document.getElementById('modal-user-name').innerText = name;
-            document.getElementById('modal-user-email').innerText = session.user.email;
+            const modalImg = document.getElementById('modal-user-img');
+            const modalName = document.getElementById('modal-user-name');
+            const modalEmail = document.getElementById('modal-user-email');
+
+            if (modalImg) modalImg.src = avatar;
+            if (modalName) modalName.innerText = name;
+            if (modalEmail) modalEmail.innerText = session.user.email;
         }
     });
 });

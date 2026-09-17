@@ -10,6 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnExportMain = document.getElementById("btn-export-main");
     const dropdownMenu = document.getElementById("dropdown-menu");
     const btnLimpiar = document.getElementById("btn-limpiar");
+    const btnSaveProject = document.getElementById("btn-save-project");
+    const projectNameInput = document.getElementById("project-name-input");
 
     function getSelectedOptions() {
         return {
@@ -23,29 +25,29 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!cardsGrid || !results) return;
 
         cardsGrid.innerHTML = `
-            <div class="glass-card card-item">
+            <div class="glass-card card-item" style="padding: 15px;">
                 <h4>N (Muestra)</h4>
-                <p class="card-value">${results.n}</p>
+                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.n}</p>
             </div>
-            <div class="glass-card card-item">
+            <div class="glass-card card-item" style="padding: 15px;">
                 <h4>Media (x̄)</h4>
-                <p class="card-value">${results.media}</p>
+                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.media}</p>
             </div>
-            <div class="glass-card card-item">
+            <div class="glass-card card-item" style="padding: 15px;">
                 <h4>Mediana</h4>
-                <p class="card-value">${results.mediana}</p>
+                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.mediana}</p>
             </div>
-            <div class="glass-card card-item">
+            <div class="glass-card card-item" style="padding: 15px;">
                 <h4>Moda</h4>
-                <p class="card-value">${results.moda}</p>
+                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.moda}</p>
             </div>
-            <div class="glass-card card-item">
+            <div class="glass-card card-item" style="padding: 15px;">
                 <h4>Rango</h4>
-                <p class="card-value">${results.rango}</p>
+                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.rango}</p>
             </div>
-            <div class="glass-card card-item">
+            <div class="glass-card card-item" style="padding: 15px;">
                 <h4>Desviación Estándar</h4>
-                <p class="card-value">${results.desviacion}</p>
+                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.desviacion}</p>
             </div>
         `;
     }
@@ -105,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tableWrapper.innerHTML = `<table id="frequency-table" class="data-table">${headersHTML}${bodyHTML}</table>`;
     }
 
-    function ejecutarCalculos() {
+    async function ejecutarCalculos() {
         const rawText = dataInput.value;
         const matches = rawText.match(/-?\d+(?:[.,]\d+)?/g);
         if (!matches) {
@@ -120,14 +122,37 @@ document.addEventListener("DOMContentLoaded", () => {
         if (currentResults) {
             renderTable(currentResults);
             renderCards(currentResults);
+            if (typeof saveCalculationToHistory === "function") {
+                await saveCalculationToHistory("no_agrupados", rawText, currentResults, options);
+            }
         }
     }
 
     if (btnCalcular) btnCalcular.addEventListener("click", ejecutarCalculos);
 
+    if (btnSaveProject) {
+        btnSaveProject.addEventListener("click", async () => {
+            const name = projectNameInput ? projectNameInput.value.trim() : "";
+            const rawText = dataInput.value.trim();
+            if (!name) {
+                alert("Por favor asigna un nombre al proyecto.");
+                return;
+            }
+            if (!rawText) {
+                alert("No hay datos para guardar en el proyecto.");
+                return;
+            }
+            if (typeof saveProjectToSupabase === "function") {
+                await saveProjectToSupabase(name, "no_agrupados", rawText);
+                alert("Proyecto guardado con éxito.");
+            }
+        });
+    }
+
     if (btnLimpiar) {
         btnLimpiar.addEventListener("click", () => {
             dataInput.value = "";
+            if (projectNameInput) projectNameInput.value = "";
             if (tableWrapper) tableWrapper.innerHTML = "";
             if (cardsGrid) cardsGrid.innerHTML = "";
             window.forceVarianzaFlag = false;

@@ -113,6 +113,36 @@
         </div>
     </div>
 
+    <!-- User Profile Modal -->
+    <div id="user-modal" class="modal-overlay hidden">
+        <div class="profile-card-redesigned">
+            <button id="btn-close-modal" class="modal-close-btn">✕</button>
+            <div class="profile-banner"></div>
+            <div class="profile-avatar-wrapper">
+                <img src="" id="modal-user-img" class="profile-avatar-lg" alt="Usuario">
+            </div>
+            <div class="profile-body">
+                <h2 id="modal-user-name">Usuario</h2>
+                <p id="modal-user-email">email@ejemplo.com</p>
+                <div class="profile-badges">
+                    <span class="badge-premium">Pro Member</span>
+                    <span class="badge-status">Activo</span>
+                </div>
+                <div class="profile-stats-mini">
+                    <div>
+                        <strong id="stat-count-projects">0</strong>
+                        <span>Proyectos</span>
+                    </div>
+                    <div>
+                        <strong id="stat-count-calcs">0</strong>
+                        <span>Cálculos</span>
+                    </div>
+                </div>
+                <button id="btn-logout" class="btn btn-danger" style="margin-top: 20px; width: 100%; justify-content: center;">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabaseClient.js"></script>
     <script src="statsEngine.js"></script>

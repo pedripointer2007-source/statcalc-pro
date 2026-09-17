@@ -73,30 +73,26 @@ document.addEventListener("DOMContentLoaded", () => {
             // Si se solicita una medida usando los últimos datos en memoria
             if (conversationState.lastData.length >= 2) {
                 const nums = conversationState.lastData;
-                const calculated = StatsEngine.calculateNoAgrupados(nums);
+                const calculated = StatsEngine.calculateNoAgrupados(nums, { varianza: true, asimetria: true, kurtosis: true });
 
                 if (textLower.includes("media") || textLower.includes("promedio")) {
-                    addMessage(`<b>Media (x̄):</b> ${calculated.media.val}<br>${calculated.media.steps.join("<br>")}`);
+                    addMessage(`<b>Media (x̄):</b> ${calculated.media}`);
                     return;
                 }
                 if (textLower.includes("mediana")) {
-                    addMessage(`<b>Mediana:</b> ${calculated.mediana.val}<br>${calculated.mediana.steps.join("<br>")}`);
+                    addMessage(`<b>Mediana:</b> ${calculated.mediana}`);
                     return;
                 }
                 if (textLower.includes("varianza")) {
-                    addMessage(`<b>Varianza (s²):</b> ${calculated.varianza.val}<br>${calculated.varianza.steps.join("<br>")}`);
-                    return;
-                }
-                if (textLower.includes("cuartil") || textLower.includes("q3") || textLower.includes("q1")) {
-                    addMessage(`<b>Cuartiles:</b> ${calculated.cuartiles.val}`);
+                    addMessage(`<b>Varianza (s²):</b> ${calculated.varianza}`);
                     return;
                 }
                 if (textLower.includes("rango")) {
-                    addMessage(`<b>Rango:</b> ${calculated.rango.val}`);
+                    addMessage(`<b>Rango:</b> ${calculated.rango}`);
                     return;
                 }
-                if (textLower.includes("kurtosis") || textLower.includes("curtosis")) {
-                    addMessage(`<b>Kurtosis:</b> ${calculated.kurtosis.val}`);
+                if (textLower.includes("desviacion") || textLower.includes("desviación")) {
+                    addMessage(`<b>Desviación Estándar (s):</b> ${calculated.desviacion}`);
                     return;
                 }
             }
