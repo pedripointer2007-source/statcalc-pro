@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatCalc Pro - Calculadora de Estadística Descriptiva</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Lucide Icons & Librerías -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-dark text-light">
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="brand">
+                <i data-lucide="bar-chart-3" class="brand-icon"></i>
+                <h2>StatCalc <span>Pro</span></h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" id="nav-inicio"><i data-lucide="home"></i> Inicio</a>
+                <a href="#" class="nav-item" id="nav-calc"><i data-lucide="calculator"></i> Calculadora</a>
+                <a href="#" class="nav-item"><i data-lucide="history"></i> Historial</a>
+                <a href="#" class="nav-item" id="btn-open-profile-sidebar"><i data-lucide="user"></i> Perfil</a>
+                <a href="#" class="nav-item"><i data-lucide="help-circle"></i> Ayuda</a>
+            </nav>
+            <div class="sidebar-footer glass-card">
+                <div class="icon-3d-box">📊</div>
+                <p>Las estadísticas transforman datos en decisiones.</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="header-bar glass-panel">
+                <div class="header-titles">
+                    <h1 id="page-title">Calculadora de Estadística Descriptiva</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-google" id="btn-login-google">
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+                        <span id="auth-label">Iniciar sesión con Google</span>
+                    </button>
+                    <button class="btn-avatar hidden" id="btn-user-avatar">
+                        <img src="" id="user-photo" alt="Perfil">
+                    </button>
+                </div>
+            </header>
+
+            <!-- VISTA 1: HERO / FORMULARIO -->
+            <section id="view-input" class="view-section active">
+                <div class="hero-banner glass-card">
+                    <div class="hero-text">
+                        <h1>Calculadora de <br><span class="gradient-text">Estadística Descriptiva</span></h1>
+                        <p>Obtén de forma rápida y sencilla todas las medidas estadísticas que necesitas, con explicaciones paso a paso.</p>
+                        <div class="hero-badges">
+                            <span>⚡ Resultados instantáneos</span>
+                            <span>📋 Paso a paso detallado</span>
+                            <span>📥 Descarga en múltiples formatos</span>
+                        </div>
+                        <button class="btn btn-primary btn-glow" id="btn-hero-start">Comenzar ahora →</button>
+                    </div>
+                    <div class="hero-3d-graphic">
+                        <div class="floating-laptop-3d">💻📈</div>
+                    </div>
+                </div>
+
+                <!-- Formulario de Configuración de Datos -->
+                <div class="grid-form">
+                    <!-- Configuración Tipo Datos -->
+                    <div class="glass-card form-step">
+                        <h3>1. Selecciona el tipo de datos</h3>
+                        <div class="toggle-group">
+                            <button class="btn-toggle active" id="type-no-agrupados">
+                                <i data-lucide="list"></i> Datos no agrupados
+                            </button>
+                            <button class="btn-toggle" id="type-agrupados">
+                                <i data-lucide="bar-chart-2"></i> Datos agrupados
+                            </button>
+                        </div>
+
+                        <h3>2. Ingresa los datos</h3>
+                        <textarea id="data-input" class="glass-input" rows="5" placeholder="12, 15, 18, 20, 22, 25, 28, 30, 32, 35&#10;(Separa los datos con comas o saltos de línea)"></textarea>
+                        
+                        <div class="form-actions">
+                            <button class="btn btn-primary" id="btn-calcular">Calcular</button>
+                            <button class="btn btn-secondary" id="btn-limpiar">Limpiar</button>
+                        </div>
+                    </div>
+
+                    <!-- Checklist Medidas -->
+                    <div class="glass-card form-step">
+                        <h3>3. Marca las medidas que deseas calcular</h3>
+                        <div class="checklist-container">
+                            <label><input type="checkbox" id="chk-rango" checked> Rango</label>
+                            <label><input type="checkbox" id="chk-amplitud" checked> Amplitud</label>
+                            <label><input type="checkbox" id="chk-k" checked> K (Número de intervalos)</label>
+                            <label><input type="checkbox" id="chk-media" checked> Media</label>
+                            <label><input type="checkbox" id="chk-mediana" checked> Mediana</label>
+                            <label><input type="checkbox" id="chk-varianza" checked> Varianza</label>
+                            <label><input type="checkbox" id="chk-desviacion" checked> Desviación estándar (muestral / poblacional)</label>
+                            <label><input type="checkbox" id="chk-cuartiles" checked> Cuartiles</label>
+                            <label><input type="checkbox" id="chk-deciles" checked> Deciles</label>
+                            <label><input type="checkbox" id="chk-percentiles" checked> Percentiles</label>
+                            <label><input type="checkbox" id="chk-fisher" checked> Fisher</label>
+                            <label><input type="checkbox" id="chk-kurtosis" checked> Kurtosis</label>
+                            <label><input type="checkbox" id="chk-pearson" checked> Pearson</label>
+                            <label><input type="checkbox" id="chk-moda" checked> Moda</label>
+                            <label><input type="checkbox" id="chk-tabla" checked> Tabla de frecuencias</label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA 2: RESULTADOS -->
+            <section id="view-results" class="view-section hidden">
+                <div class="results-header">
+                    <button class="btn btn-secondary" id="btn-back"><i data-lucide="arrow-left"></i> Volver</button>
+                    <h2>Resultados - <span id="results-data-type">Datos no agrupados</span></h2>
+                    <div class="dropdown-export">
+                        <button class="btn btn-primary"><i data-lucide="download"></i> Descargar ▼</button>
+                        <div class="dropdown-content">
+                            <a href="#" id="export-png">📷 PNG</a>
+                            <a href="#" id="export-pdf">📄 PDF</a>
+                            <a href="#" id="export-excel">📊 Excel</a>
+                            <a href="#" id="export-csv">📝 CSV</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenedor dinámico de Tarjetas / Cards -->
+                <div class="cards-grid" id="cards-container">
+                    <!-- Inserción dinámica JS de tarjetas basadas en lo chequeado -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Panel Lateral Deslizante: Modal Paso a Paso -->
+        <div class="sliding-panel hidden" id="steps-panel">
+            <div class="sliding-header">
+                <h3 id="steps-title">Detalle de cálculo</h3>
+                <button class="btn-close" id="btn-close-steps">✕</button>
+            </div>
+            <div class="sliding-body" id="steps-content">
+                <!-- Se inyecta la explicación paso a paso aquí -->
+            </div>
+        </div>
+
+        <!-- Modal de Perfil de Usuario y Sesión -->
+        <div class="modal-overlay hidden" id="profile-modal">
+            <div class="modal-glass">
+                <button class="btn-close modal-close-btn" id="btn-close-profile">✕</button>
+                <div class="profile-header">
+                    <img src="" id="modal-user-img" class="profile-avatar-lg" alt="Avatar">
+                    <h3 id="modal-user-name">Usuario</h3>
+                    <p id="modal-user-email">email@correo.com</p>
+                    <span class="badge-premium">👑 Usuario Premium</span>
+                </div>
+                <div class="profile-menu">
+                    <a href="#"><i data-lucide="user"></i> Mi perfil</a>
+                    <a href="#"><i data-lucide="settings"></i> Configuración</a>
+                    <a href="#"><i data-lucide="history"></i> Historial de cálculos</a>
+                    <a href="#"><i data-lucide="help-circle"></i> Ayuda</a>
+                </div>
+                <button class="btn btn-danger btn-block" id="btn-logout"><i data-lucide="log-out"></i> Cerrar sesión</button>
+            </div>
+        </div>
+
+        <!-- Widget Flotante del Chat de IA (Asistente Estadístico) -->
+        <div class="ai-chat-widget">
+            <button class="ai-fab-btn" id="btn-toggle-chat">🤖</button>
+            <div class="ai-chat-window hidden" id="ai-chat-window">
+                <div class="chat-header">
+                    <span>✨ IA StatCalc Assistant</span>
+                    <button id="btn-close-chat">✕</button>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="msg msg-ai">¡Hola! Dame un problema o una lista de datos estadísticos y configuraré la calculadora o resolveré todo por ti automáticamente.</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Ej: Calcula la media y varianza de 12, 15, 18, 20...">
+                    <button id="btn-send-chat">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabaseClient.js"></script>
+    <script src="statsEngine.js"></script>
+    <script src="aiChat.js"></script>
+    <script src="app.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
