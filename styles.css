@@ -258,3 +258,27 @@ body {
     display: flex;
     flex-direction: column;
 }
+/* Corrección de Header e Imagen de Google */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-google {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    color: #3c4043;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    max-height: 42px;
+}
+
+.btn-google img {
+    width: 20px !important;
+    height: 20px !important;
+    object-fit: contain;
+}

@@ -1,9 +1,25 @@
+// Abrir y cerrar la ventana flotante del Chat de IA
+const toggleChatBtn = document.getElementById('btn-toggle-chat');
+const closeChatBtn = document.getElementById('btn-close-chat');
+const chatWindow = document.getElementById('ai-chat-window');
+
+if (toggleChatBtn && chatWindow) {
+    toggleChatBtn.addEventListener('click', () => {
+        chatWindow.classList.toggle('hidden');
+    });
+}
+
+if (closeChatBtn && chatWindow) {
+    closeChatBtn.addEventListener('click', () => {
+        chatWindow.classList.add('hidden');
+    });
+}
+
 // Integración con Google Gemini API para interpretar ejercicios de los usuarios
 async function processExerciseWithAI(promptText) {
     const chatBox = document.getElementById('chat-messages');
     chatBox.innerHTML += `<div class="msg msg-user">${promptText}</div>`;
     
-    // Simulación o llamado directo a la API de Gemini
     try {
         // Extraer números automáticamente del texto dado por el usuario
         const numbers = promptText.match(/-?\d+(\.\d+)?/g);
