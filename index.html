@@ -3,209 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StatCalc Pro - Calculadora Estadística Descriptiva e IA</title>
+    <title>StatCalc Pro - Calculadora de Estadística Descriptiva</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <!-- Librería para exportación a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Librería para exportación a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- OCR Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.min.js"></script>
 </head>
-<body class="bg-dark text-light">
-
+<body>
     <div class="app-container">
-        <!-- Navegación Lateral -->
+        <!-- Sidebar Navigation -->
         <aside class="sidebar glass-panel">
             <div class="brand">
-                <i data-lucide="bar-chart-3" class="brand-icon"></i>
-                <h2>StatCalc <span>Pro</span></h2>
+                <h2>📊 StatCalc <span>Pro</span></h2>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="nav-item active" id="nav-inicio"><i data-lucide="home"></i> Inicio</a>
-                <a href="#" class="nav-item" id="nav-calc"><i data-lucide="calculator"></i> Calculadora</a>
-                <a href="#" class="nav-item" id="nav-projects"><i data-lucide="folder-plus"></i> Proyectos / En Proceso</a>
-                <a href="#" class="nav-item" id="nav-history"><i data-lucide="history"></i> Historial</a>
-                <a href="#" class="nav-item" id="btn-open-profile-sidebar"><i data-lucide="user"></i> Perfil</a>
+                <a href="#" class="nav-item active"><span>🏠</span> Inicio</a>
+                <a href="#" class="nav-item"><span>📁</span> Proyectos</a>
             </nav>
-            <div class="sidebar-footer glass-card">
-                <div class="icon-3d-box">📊</div>
-                <p>Estadística descriptiva interactiva con IA integrada.</p>
-            </div>
         </aside>
 
-        <!-- Contenido Principal -->
+        <!-- Main Content -->
         <main class="main-content">
-            <!-- Barra Superior -->
             <header class="header-bar glass-panel">
-                <div class="header-titles">
-                    <h1 id="page-title">Calculadora de Estadística Descriptiva</h1>
-                </div>
+                <h1>Calculadora de Estadística Descriptiva</h1>
                 <div class="header-actions">
-                    <button class="btn btn-google" id="btn-login-google">
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-                        <span id="auth-label">Iniciar sesión con Google</span>
-                    </button>
-                    <button class="btn-avatar hidden" id="btn-user-avatar">
-                        <img src="" id="user-photo" alt="Perfil">
-                    </button>
+                    <button class="btn-google" id="btn-login">Iniciar Sesión</button>
                 </div>
             </header>
 
-            <!-- VISTA 1: HERO Y CONFIGURACIÓN -->
-            <section id="view-input" class="view-section active">
-                <div class="hero-banner glass-card">
-                    <div class="hero-text">
-                        <h1>Calculadora de <br><span class="gradient-text">Estadística Descriptiva</span></h1>
-                        <p>Analiza tus datos rápidamente con desglose paso a paso de fórmulas y procedimientos.</p>
-                        <button class="btn btn-primary btn-glow" id="btn-hero-start">Comenzar ahora →</button>
-                    </div>
-                    <div class="hero-3d-graphic" id="canvas-3d-container"></div>
-                </div>
-
+            <section class="calculator-container">
                 <div class="grid-form">
                     <div class="glass-card form-step">
-                        <h3>1. Tipo de datos</h3>
-                        <div class="toggle-group">
-                            <button class="btn-toggle active" id="type-no-agrupados"><i data-lucide="list"></i> No agrupados</button>
-                            <button class="btn-toggle" id="type-agrupados"><i data-lucide="bar-chart-2"></i> Agrupados</button>
-                        </div>
-
-                        <h3>2. Nombre del Proyecto / Entrada de Datos</h3>
-                        <input type="text" id="project-name-input" class="glass-input" placeholder="Nombre de este proyecto (Ej. Ejercicio 1 - Clase)" style="margin-bottom: 10px;">
-                        <textarea id="data-input" class="glass-input" rows="5" placeholder="Ingresa datos separados por comas o espacios. Ej: 12, 15, 18, 20, 22..."></textarea>
-                        
-                        <div class="form-actions" style="margin-top: 15px; display: flex; gap: 10px;">
-                            <button class="btn btn-primary" id="btn-calcular"><i data-lucide="play"></i> Calcular</button>
-                            <button class="btn btn-secondary" id="btn-save-project"><i data-lucide="save"></i> Guardar En Proceso</button>
-                            <button class="btn btn-secondary" id="btn-limpiar"><i data-lucide="trash-2"></i> Limpiar</button>
-                        </div>
+                        <h3>Entrada de Datos</h3>
+                        <textarea id="data-input" class="glass-input" rows="5" placeholder="Ingresa datos separados por comas. Ej: 10, 15, 20, 25"></textarea>
+                        <button id="btn-calcular" class="btn btn-primary" style="margin-top: 15px;">Calcular</button>
                     </div>
 
                     <div class="glass-card form-step">
-                        <h3>3. Selección de Medidas</h3>
+                        <h3>Medidas opcionales</h3>
                         <div class="checklist-container">
-                            <label><input type="checkbox" id="chk-rango" checked> Rango</label>
-                            <label><input type="checkbox" id="chk-amplitud" checked> Amplitud</label>
-                            <label><input type="checkbox" id="chk-k" checked> K (Sturges)</label>
-                            <label><input type="checkbox" id="chk-media" checked> Media</label>
-                            <label><input type="checkbox" id="chk-mediana" checked> Mediana</label>
-                            <label><input type="checkbox" id="chk-varianza" checked> Varianza</label>
-                            <label><input type="checkbox" id="chk-desviacion" checked> Desviación estándar</label>
-                            <label><input type="checkbox" id="chk-cuartiles" checked> Cuartiles (Q1-Q3)</label>
-                            <label><input type="checkbox" id="chk-deciles" checked> Deciles (D1-D9)</label>
-                            <label><input type="checkbox" id="chk-percentiles" checked> Percentiles (P1-P99)</label>
-                            <label><input type="checkbox" id="chk-fisher" checked> Fisher</label>
-                            <label><input type="checkbox" id="chk-kurtosis" checked> Kurtosis</label>
-                            <label><input type="checkbox" id="chk-pearson" checked> Pearson</label>
-                            <label><input type="checkbox" id="chk-moda" checked> Moda</label>
-                            <hr style="border-color: var(--border-color);">
-                            <label><input type="checkbox" id="chk-tabla" checked> <b>Tabla de Frecuencias</b></label>
-                            <div id="freq-table-options" class="sub-checklist" style="padding-left: 20px;">
-                                <label><input type="checkbox" id="col-fi" checked> fi (Frecuencia absoluta)</label>
-                                <label><input type="checkbox" id="col-Fi-acc" checked> Fi (Frecuencia acumulada)</label>
-                                <label><input type="checkbox" id="col-fr" checked> fr (Frecuencia relativa)</label>
-                                <label><input type="checkbox" id="col-Fr-acc" checked> Fr (Frecuencia relativa acumulada)</label>
-                                <label><input type="checkbox" id="col-pct" checked> % (Porcentaje)</label>
+                            <label><input type="checkbox" id="chk-varianza" class="chk-medida" value="varianza"> Varianza / Desviación</label>
+                            <label><input type="checkbox" id="chk-asimetria" class="chk-medida" value="asimetria"> Asimetría (Fisher)</label>
+                            <label><input type="checkbox" id="chk-kurtosis" class="chk-medida" value="kurtosis"> Curtosis</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultados -->
+                <div id="results-section" class="results-container style="margin-top:25px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h2>Resultados</h2>
+                        <div class="dropdown-export">
+                            <button class="btn btn-primary">Descargar ▼</button>
+                            <div class="dropdown-content">
+                                <a href="#" id="btn-export-pdf">Exportar PDF</a>
+                                <a href="#" id="btn-export-excel">Exportar Excel</a>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            <!-- VISTA 2: RESULTADOS -->
-            <section id="view-results" class="view-section hidden">
-                <div class="results-header">
-                    <button class="btn btn-secondary" id="btn-back"><i data-lucide="arrow-left"></i> Volver</button>
-                    <h2>Resultados - <span id="results-data-type">No agrupados</span></h2>
-                    <div class="dropdown-export">
-                        <button class="btn btn-primary" id="btn-export-main"><i data-lucide="download"></i> Descargar ▼</button>
-                        <div class="dropdown-content hidden" id="dropdown-menu">
-                            <a href="#" id="export-pdf">📄 Exportar PDF</a>
-                            <a href="#" id="export-excel">📊 Exportar Excel</a>
+                    <!-- Tabla de Frecuencias -->
+                    <div class="glass-card" style="padding: 20px; margin-top:20px;">
+                        <h3>Tabla de Frecuencias</h3>
+                        <div id="table-wrapper">
+                            <!-- La tabla se renderiza dinámicamente -->
                         </div>
                     </div>
+
+                    <!-- Grid de Tarjetas -->
+                    <div id="cards-grid" class="cards-grid"></div>
                 </div>
-
-                <div class="cards-grid" id="cards-container"></div>
-                <div id="table-results-container" class="glass-card" style="margin-top: 20px; padding: 20px;"></div>
-            </section>
-
-            <!-- VISTA 3: PROYECTOS Y EN PROCESO -->
-            <section id="view-projects" class="view-section hidden">
-                <h2>Mis Proyectos Guardados / En Proceso</h2>
-                <p>Carga o gestiona los ejercicios que has guardado previamente.</p>
-                <div id="projects-list-container" class="cards-grid" style="margin-top: 15px;"></div>
-            </section>
-
-            <!-- VISTA 4: HISTORIAL -->
-            <section id="view-history" class="view-section hidden">
-                <h2>Historial de Cálculos Realizados</h2>
-                <div id="history-list-container" class="cards-grid" style="margin-top: 15px;"></div>
             </section>
         </main>
+    </div>
 
-        <!-- Panel Lateral Desglose Paso a Paso -->
-        <div class="sliding-panel hidden" id="steps-panel">
-            <div class="sliding-header">
-                <h3 id="steps-title">Detalle del Cálculo</h3>
-                <button class="btn-close" id="btn-close-steps">✕</button>
+    <!-- AI Chat Widget -->
+    <div class="ai-chat-widget">
+        <button id="btn-toggle-chat" class="ai-fab-btn">🤖</button>
+        <div id="ai-chat-window" class="ai-chat-window hidden">
+            <div class="chat-header">
+                <span>Asistente IA</span>
+                <button id="btn-close-chat" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
             </div>
-            <div class="sliding-body" id="steps-content"></div>
-        </div>
-
-        <!-- Modal de Perfil Rediseñado Estéticamente -->
-        <div class="modal-overlay hidden" id="profile-modal">
-            <div class="modal-glass profile-card-redesigned">
-                <button class="btn-close modal-close-btn" id="btn-close-profile">✕</button>
-                <div class="profile-banner"></div>
-                <div class="profile-avatar-wrapper">
-                    <img src="https://via.placeholder.com/100" id="modal-user-img" class="profile-avatar-lg" alt="Avatar">
-                </div>
-                <div class="profile-body">
-                    <h2 id="modal-user-name">Usuario</h2>
-                    <p id="modal-user-email">email@correo.com</p>
-                    <div class="profile-badges">
-                        <span class="badge-premium">👑 Plan Pro / Premium</span>
-                        <span class="badge-status">● Activo</span>
-                    </div>
-                    <div class="profile-stats-mini">
-                        <div><strong id="stat-count-projects">0</strong><span>Proyectos</span></div>
-                        <div><strong id="stat-count-calcs">0</strong><span>Cálculos</span></div>
-                    </div>
-                    <button class="btn btn-danger btn-block" id="btn-logout" style="width: 100%; margin-top: 15px;"><i data-lucide="log-out"></i> Cerrar sesión</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Widget del Asistente IA -->
-        <div class="ai-chat-widget">
-            <button class="ai-fab-btn" id="btn-toggle-chat" aria-label="Abrir Asistente">🤖</button>
-            <div class="ai-chat-window hidden" id="ai-chat-window">
-                <div class="chat-header">
-                    <span>✨ StatCalc AI Engine</span>
-                    <button id="btn-close-chat">✕</button>
-                </div>
-                <div class="chat-messages" id="chat-messages">
-                    <div class="msg msg-ai">¡Hola! Soy tu asistente estadístico. Puedes pedirme cálculos directamente, enviarme ejercicios o subir fotos con OCR.</div>
-                </div>
-                <div id="ai-typing-indicator" class="typing-indicator hidden">StatCalc AI está pensando...</div>
-                <div class="chat-input-area">
-                    <label for="chat-file-input" class="btn-icon-attach" title="Subir imagen/archivo">📷
-                        <input type="file" id="chat-file-input" accept="image/*,.txt,.csv" style="display:none;">
-                    </label>
-                    <input type="text" id="chat-input" placeholder="Ej: Calcula la media y varianza de 10, 20, 30...">
-                    <button id="btn-send-chat">Enviar</button>
-                </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div id="ai-typing-indicator" class="typing-indicator hidden">Procesando...</div>
+            <div class="chat-input-area">
+                <label for="chat-file-input" class="btn-icon-attach">📎</label>
+                <input type="file" id="chat-file-input" class="hidden" accept="image/*,.txt,.csv">
+                <input type="text" id="chat-input" placeholder="Escribe o pide un cálculo...">
+                <button id="btn-send-chat" class="btn btn-primary">Enviar</button>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabaseClient.js"></script>
     <script src="statsEngine.js"></script>
     <script src="aiChat.js"></script>
     <script src="app.js"></script>
-    <script>lucide.createIcons();</script>
 </body>
 </html>
