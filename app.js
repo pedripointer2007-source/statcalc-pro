@@ -1,206 +1,193 @@
-let currentResults = null;
+// app.js - Lógica Interactiva, Exportaciones y Modales
+import { supabase, loginWithGoogle, logout, onAuthStateChange } from './supabaseClient.js';
+import { StatsEngine } from './statsEngine.js';
+import { AIChat } from './aiChat.js';
 
-document.addEventListener("DOMContentLoaded", () => {
-    const btnCalcular = document.getElementById("btn-calcular");
-    const dataInput = document.getElementById("data-input");
-    const tableWrapper = document.getElementById("table-wrapper");
-    const cardsGrid = document.getElementById("cards-grid");
-    const btnExportPDF = document.getElementById("btn-export-pdf");
-    const btnExportExcel = document.getElementById("btn-export-excel");
-    const btnExportMain = document.getElementById("btn-export-main");
-    const dropdownMenu = document.getElementById("dropdown-menu");
-    const btnLimpiar = document.getElementById("btn-limpiar");
-    const btnSaveProject = document.getElementById("btn-save-project");
-    const projectNameInput = document.getElementById("project-name-input");
+class StatCalcApp {
+  constructor() {
+    this.currentUser = null;
+    this.currentResults = null;
+    this.aiChat = new AIChat(this);
+    this.init();
+  }
 
-    function getSelectedOptions() {
-        return {
-            varianza: document.getElementById("chk-varianza")?.checked || window.forceVarianzaFlag,
-            asimetria: document.getElementById("chk-asimetria")?.checked || window.forceFisherFlag,
-            kurtosis: document.getElementById("chk-kurtosis")?.checked || window.forceKurtosisFlag
-        };
+  init() {
+    this.bindEvents();
+    this.setupAuthListener();
+  }
+
+  bindEvents() {
+    // Auth Events
+    document.getElementById('btnLoginGoogle').addEventListener('click', () => loginWithGoogle());
+    document.getElementById('userProfileBtn').addEventListener('click', () => this.openProfileModal());
+    document.getElementById('btnCloseModal').addEventListener('click', () => this.closeProfileModal());
+    document.getElementById('btnLogout').addEventListener('click', () => logout());
+
+    // Calculate Event
+    document.getElementById('btnCalculate').addEventListener('click', () => this.runCalculation());
+
+    // AI Chat Events
+    document.getElementById('btnSendChat').addEventListener('click', () => this.handleChat());
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.handleChat();
+    });
+
+    // Export Events
+    document.getElementById('btnExportCSV').addEventListener('click', () => this.exportCSV());
+    document.getElementById('btnExportExcel').addEventListener('click', () => this.exportExcel());
+    document.getElementById('btnExportPDF').addEventListener('click', () => this.exportPDF());
+  }
+
+  setupAuthListener() {
+    onAuthStateChange((user) => {
+      this.currentUser = user;
+      const btnLogin = document.getElementById('btnLoginGoogle');
+      const profileBtn = document.getElementById('userProfileBtn');
+      const avatar = document.getElementById('userAvatar');
+
+      if (user) {
+        btnLogin.style.display = 'none';
+        profileBtn.style.display = 'block';
+        avatar.src = user.user_metadata?.avatar_url || 'https://via.placeholder.com/40';
+      } else {
+        btnLogin.style.display = 'block';
+        profileBtn.style.display = 'none';
+      }
+    });
+  }
+
+  openProfileModal() {
+    if (!this.currentUser) return;
+    document.getElementById('modalUserName').innerText = this.currentUser.user_metadata?.full_name || 'Usuario';
+    document.getElementById('modalUserEmail').innerText = this.currentUser.email || '';
+    document.getElementById('modalUserAvatar').src = this.currentUser.user_metadata?.avatar_url || '';
+    document.getElementById('profileModal').style.display = 'flex';
+  }
+
+  closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+  }
+
+  setDataInput(text) {
+    document.getElementById('rawDataInput').value = text;
+  }
+
+  resetAll() {
+    document.getElementById('rawDataInput').value = '';
+    document.getElementById('stepByStepOutput').innerHTML = '<p style="color: var(--text-muted);">Campos reseteados.</p>';
+  }
+
+  runCalculation() {
+    const rawInput = document.getElementById('rawDataInput').value;
+    const isSample = document.getElementById('sampleType').value === 'sample';
+    
+    const parsedData = rawInput.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+
+    if (parsedData.length === 0) {
+      alert("Por favor ingresa una serie válida de números separados por coma.");
+      return;
     }
 
-    function renderCards(results) {
-        if (!cardsGrid || !results) return;
+    const res = StatsEngine.calculateUngrouped(parsedData, isSample);
+    this.currentResults = res;
 
-        cardsGrid.innerHTML = `
-            <div class="glass-card card-item" style="padding: 15px;">
-                <h4>N (Muestra)</h4>
-                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.n}</p>
-            </div>
-            <div class="glass-card card-item" style="padding: 15px;">
-                <h4>Media (x̄)</h4>
-                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.media}</p>
-            </div>
-            <div class="glass-card card-item" style="padding: 15px;">
-                <h4>Mediana</h4>
-                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.mediana}</p>
-            </div>
-            <div class="glass-card card-item" style="padding: 15px;">
-                <h4>Moda</h4>
-                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.moda}</p>
-            </div>
-            <div class="glass-card card-item" style="padding: 15px;">
-                <h4>Rango</h4>
-                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.rango}</p>
-            </div>
-            <div class="glass-card card-item" style="padding: 15px;">
-                <h4>Desviación Estándar</h4>
-                <p class="card-value" style="font-size: 1.4rem; color: var(--accent); font-weight: bold;">${results.desviacion}</p>
-            </div>
-        `;
+    // Mostrar pasos en la UI
+    const outputDiv = document.getElementById('stepByStepOutput');
+    outputDiv.innerHTML = res.steps.map(step => `<div class="step-card">${step}</div>`).join('');
+
+    // Renderizar Gráfico 3D
+    this.render3DChart(parsedData);
+  }
+
+  render3DChart(data) {
+    // Generar Superficie 3D representativa de la distribución
+    const x = data;
+    const y = data.map((v, i) => i);
+    const z = data.map(v => Math.sin(v));
+
+    const trace = {
+      x: x, y: y, z: z,
+      mode: 'markers',
+      marker: {
+        size: 8,
+        color: x,
+        colorscale: 'Viridis',
+        opacity: 0.8
+      },
+      type: 'scatter3d'
+    };
+
+    const layout = {
+      margin: { l: 0, r: 0, b: 0, t: 0 },
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      scene: {
+        xaxis: { title: 'Valores' },
+        yaxis: { title: 'Índice' },
+        zaxis: { title: 'Densidad' }
+      }
+    };
+
+    Plotly.newPlot('chartContainer', [trace], layout, { responsive: true, displayModeBar: false });
+  }
+
+  async handleChat() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    this.appendChatMessage(text, 'user');
+    input.value = '';
+
+    const response = await this.aiChat.processMessage(text);
+    this.appendChatMessage(response, 'ai');
+  }
+
+  appendChatMessage(msg, type) {
+    const box = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `msg ${type}`;
+    div.innerText = msg;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  exportCSV() {
+    if (!this.currentResults) return alert("Primero realiza un cálculo.");
+    let csvContent = "data:text/csv;charset=utf-8,Metrica,Valor\n";
+    for (let [k, v] of Object.entries(this.currentResults.results)) {
+      csvContent += `${k},${v}\n`;
     }
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "Resultados_Estadisticos.csv");
+    document.body.appendChild(link);
+    link.click();
+  }
 
-    function renderTable(results) {
-        if (!results || !tableWrapper) return;
+  exportExcel() {
+    if (!this.currentResults) return alert("Primero realiza un cálculo.");
+    const ws = XLSX.utils.json_to_sheet([this.currentResults.results]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Resultados");
+    XLSX.writeFile(wb, "Reporte_Estadistico.xlsx");
+  }
 
-        const flags = results.flags;
-        let headersHTML = `
-            <thead>
-                <tr>
-                    <th>Dato (X)</th>
-                    <th>Marca de Clase (xi)</th>
-                    <th>fi</th>
-                    <th>Fi</th>
-                    <th>%</th>
-                    <th>xi * fi</th>
-                    ${flags.includeVarianza ? `<th>fi * (xi - x̄)²</th>` : ''}
-                    ${flags.includeFisher ? `<th>fi * (xi - x̄)³</th>` : ''}
-                    ${flags.includeKurtosis ? `<th>fi * (xi - x̄)⁴</th>` : ''}
-                </tr>
-            </thead>
-        `;
-
-        let bodyHTML = "<tbody>";
-        results.tabla.forEach(row => {
-            bodyHTML += `
-                <tr>
-                    <td><b>${row.dato}</b></td>
-                    <td>${row.xi}</td>
-                    <td>${row.fi}</td>
-                    <td>${row.Fi}</td>
-                    <td>${row.pct}</td>
-                    <td>${row.xi_fi}</td>
-                    ${flags.includeVarianza ? `<td>${row.sq_diff}</td>` : ''}
-                    ${flags.includeFisher ? `<td>${row.cub_diff}</td>` : ''}
-                    ${flags.includeKurtosis ? `<td>${row.pow4_diff}</td>` : ''}
-                </tr>
-            `;
-        });
-
-        // Totales
-        bodyHTML += `
-            <tr style="font-weight: bold; background: rgba(99, 102, 241, 0.2);">
-                <td colspan="2">Total / Sumatoria</td>
-                <td>${results.totales.sum_fi}</td>
-                <td>-</td>
-                <td>100%</td>
-                <td>${results.totales.sum_xi_fi}</td>
-                ${flags.includeVarianza ? `<td>${results.totales.sum_sq_diff}</td>` : ''}
-                ${flags.includeFisher ? `<td>${results.totales.sum_cub_diff}</td>` : ''}
-                ${flags.includeKurtosis ? `<td>${results.totales.sum_pow4_diff}</td>` : ''}
-            </tr>
-        `;
-        bodyHTML += "</tbody>";
-
-        tableWrapper.innerHTML = `<table id="frequency-table" class="data-table">${headersHTML}${bodyHTML}</table>`;
+  exportPDF() {
+    if (!this.currentResults) return alert("Primero realiza un cálculo.");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Reporte Estadístico - StatCalc Pro", 10, 10);
+    let y = 20;
+    for (let [k, v] of Object.entries(this.currentResults.results)) {
+      doc.text(`${k}: ${v}`, 10, y);
+      y += 10;
     }
+    doc.save("Reporte_Estadistico.pdf");
+  }
+}
 
-    async function ejecutarCalculos() {
-        const rawText = dataInput.value;
-        const matches = rawText.match(/-?\d+(?:[.,]\d+)?/g);
-        if (!matches) {
-            alert("Por favor ingresa datos numéricos válidos.");
-            return;
-        }
-
-        const numbers = matches.map(v => parseFloat(v.replace(",", "."))).filter(Number.isFinite);
-        const options = getSelectedOptions();
-
-        currentResults = StatsEngine.calculateNoAgrupados(numbers, options);
-        if (currentResults) {
-            renderTable(currentResults);
-            renderCards(currentResults);
-            if (typeof saveCalculationToHistory === "function") {
-                await saveCalculationToHistory("no_agrupados", rawText, currentResults, options);
-            }
-        }
-    }
-
-    if (btnCalcular) btnCalcular.addEventListener("click", ejecutarCalculos);
-
-    if (btnSaveProject) {
-        btnSaveProject.addEventListener("click", async () => {
-            const name = projectNameInput ? projectNameInput.value.trim() : "";
-            const rawText = dataInput.value.trim();
-            if (!name) {
-                alert("Por favor asigna un nombre al proyecto.");
-                return;
-            }
-            if (!rawText) {
-                alert("No hay datos para guardar en el proyecto.");
-                return;
-            }
-            if (typeof saveProjectToSupabase === "function") {
-                await saveProjectToSupabase(name, "no_agrupados", rawText);
-                alert("Proyecto guardado con éxito.");
-            }
-        });
-    }
-
-    if (btnLimpiar) {
-        btnLimpiar.addEventListener("click", () => {
-            dataInput.value = "";
-            if (projectNameInput) projectNameInput.value = "";
-            if (tableWrapper) tableWrapper.innerHTML = "";
-            if (cardsGrid) cardsGrid.innerHTML = "";
-            window.forceVarianzaFlag = false;
-            window.forceFisherFlag = false;
-            window.forceKurtosisFlag = false;
-        });
-    }
-
-    // Dropdown Export
-    if (btnExportMain && dropdownMenu) {
-        btnExportMain.addEventListener("click", (e) => {
-            e.stopPropagation();
-            dropdownMenu.classList.toggle("hidden");
-        });
-        document.addEventListener("click", () => dropdownMenu.classList.add("hidden"));
-    }
-
-    // Exportación Excel
-    if (btnExportExcel) {
-        btnExportExcel.addEventListener("click", (e) => {
-            e.preventDefault();
-            const table = document.getElementById("frequency-table");
-            if (!table) {
-                alert("Primero debes calcular para generar la tabla.");
-                return;
-            }
-            const wb = XLSX.utils.table_to_book(table, { sheet: "Frecuencias" });
-            XLSX.writeFile(wb, "Tabla_de_Frecuencias.xlsx");
-        });
-    }
-
-    // Exportación PDF
-    if (btnExportPDF) {
-        btnExportPDF.addEventListener("click", (e) => {
-            e.preventDefault();
-            const element = document.getElementById("results-section");
-            if (!element) {
-                alert("No hay resultados para exportar.");
-                return;
-            }
-            const opt = {
-                margin: 0.5,
-                filename: 'Reporte_Estadistico.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
-            };
-            html2pdf().set(opt).from(element).save();
-        });
-    }
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new StatCalcApp();
 });

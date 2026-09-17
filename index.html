@@ -1,152 +1,133 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StatCalc Pro - Calculadora de Estadística Descriptiva</title>
-    <link rel="stylesheet" href="styles.css">
-    
-    <!-- Librería para exportación a Excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Librería para exportación a PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- OCR Tesseract.js -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StatCalc Pro - Plataforma Estadística Avanzada 3D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <!-- Plotly para Visualización de Gráficos 3D / 2D -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <!-- SheetJS & jsPDF para Exportación -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body class="bg-dark text-light">
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar glass-panel">
-            <div class="brand">
-                <h2>📊 StatCalc <span>Pro</span></h2>
-            </div>
-            <nav class="nav-menu">
-                <a href="#" class="nav-item active" id="nav-inicio"><span>🏠</span> Inicio</a>
-                <a href="#" class="nav-item" id="nav-projects"><span>📁</span> Proyectos</a>
-                <a href="#" class="nav-item" id="nav-history"><span>📜</span> Historial</a>
-            </nav>
-        </aside>
+<body>
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="header-bar glass-panel">
-                <h1>Calculadora de Estadística Descriptiva</h1>
-                <div class="header-actions">
-                    <button class="btn btn-google" id="btn-login-google">
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style="width:16px; margin-right:8px;">
-                        <span id="auth-label">Iniciar Sesión</span>
-                    </button>
-                    <button class="btn-avatar hidden" id="btn-user-avatar">
-                        <img src="" id="user-photo" alt="Perfil">
-                    </button>
-                </div>
-            </header>
-
-            <section class="calculator-container" style="padding: 20px;">
-                <div class="grid-form">
-                    <div class="glass-card form-step">
-                        <h3>Entrada de Datos</h3>
-                        <input type="text" id="project-name-input" class="glass-input" placeholder="Nombre del proyecto (Ej. Ejercicio 1)" style="margin-bottom: 12px;">
-                        <textarea id="data-input" class="glass-input" rows="5" placeholder="Ingresa datos separados por comas o espacios. Ej: 10, 15, 20, 25"></textarea>
-                        
-                        <div style="margin-top: 15px; display: flex; gap: 10px;">
-                            <button id="btn-calcular" class="btn btn-primary">Calcular</button>
-                            <button id="btn-save-project" class="btn btn-secondary">Guardar</button>
-                            <button id="btn-limpiar" class="btn btn-secondary">Limpiar</button>
-                        </div>
-                    </div>
-
-                    <div class="glass-card form-step">
-                        <h3>Medidas opcionales</h3>
-                        <div class="checklist-container">
-                            <label><input type="checkbox" id="chk-varianza" value="varianza"> Varianza / Desviación $(x_i - \bar{x})^2$</label>
-                            <label><input type="checkbox" id="chk-asimetria" value="asimetria"> Asimetría Fisher $(x_i - \bar{x})^3$</label>
-                            <label><input type="checkbox" id="chk-kurtosis" value="kurtosis"> Curtosis $(x_i - \bar{x})^4$</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Resultados -->
-                <div id="results-section" class="results-container" style="margin-top: 25px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2>Resultados</h2>
-                        <div class="dropdown-export">
-                            <button class="btn btn-primary" id="btn-export-main">Descargar ▼</button>
-                            <div class="dropdown-content hidden" id="dropdown-menu">
-                                <a href="#" id="btn-export-pdf">Exportar PDF</a>
-                                <a href="#" id="btn-export-excel">Exportar Excel</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tabla de Frecuencias -->
-                    <div class="glass-card" style="padding: 20px; margin-top: 20px;">
-                        <h3>Tabla de Frecuencias</h3>
-                        <div id="table-wrapper">
-                            <!-- La tabla se renderiza dinámicamente -->
-                        </div>
-                    </div>
-
-                    <!-- Grid de Tarjetas (Resumen Estadístico) -->
-                    <div id="cards-grid" class="cards-grid" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;"></div>
-                </div>
-            </section>
-        </main>
+  <!-- Header -->
+  <header>
+    <div class="logo">StatCalc <span style="color:#fff;">PRO</span></div>
+    <div class="auth-actions" id="authSection">
+      <button id="btnLoginGoogle">Iniciar Sesión con Google</button>
+      <div id="userProfileBtn" style="display: none; cursor: pointer;">
+        <img id="userAvatar" src="" alt="User" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #00f0ff;">
+      </div>
     </div>
+  </header>
 
-    <!-- AI Chat Widget -->
-    <div class="ai-chat-widget">
-        <button id="btn-toggle-chat" class="ai-fab-btn">🤖</button>
-        <div id="ai-chat-window" class="ai-chat-window hidden">
-            <div class="chat-header">
-                <span>Asistente IA</span>
-                <button id="btn-close-chat" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
-            </div>
-            <div id="chat-messages" class="chat-messages"></div>
-            <div id="ai-typing-indicator" class="typing-indicator hidden">Procesando...</div>
-            <div class="chat-input-area">
-                <label for="chat-file-input" class="btn-icon-attach" title="Adjuntar imagen/archivo">📎</label>
-                <input type="file" id="chat-file-input" class="hidden" accept="image/*,.txt,.csv" style="display:none;">
-                <input type="text" id="chat-input" placeholder="Escribe o pide un cálculo...">
-                <button id="btn-send-chat" class="btn btn-primary">Enviar</button>
-            </div>
+  <!-- Layout Principal -->
+  <div class="container">
+    
+    <!-- Panel Izquierdo: Configuración e Inputs -->
+    <div class="panel">
+      <h2>Configuración de Datos</h2>
+      
+      <div>
+        <label>Tipo de Datos:</label>
+        <select id="dataType" style="width:100%; padding: 0.5rem; background:#000; color:#fff; border-radius:6px; border:1px solid var(--panel-border);">
+          <option value="ungrouped">Datos No Agrupados</option>
+          <option value="grouped">Datos Agrupados (Intervalos)</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Población o Muestra:</label>
+        <select id="sampleType" style="width:100%; padding: 0.5rem; background:#000; color:#fff; border-radius:6px; border:1px solid var(--panel-border);">
+          <option value="sample">Muestral (N - 1)</option>
+          <option value="population">Poblacional (N)</option>
+        </select>
+      </div>
+
+      <!-- Selector de Métricas a Mostrar -->
+      <div>
+        <label>Selecciona qué ver en los resultados:</label>
+        <div class="checkbox-grid" id="metricsSelector">
+          <label><input type="checkbox" value="range" checked> Rango</label>
+          <label><input type="checkbox" value="k" checked> k (Sturges)</label>
+          <label><input type="checkbox" value="amplitude" checked> Amplitud</label>
+          <label><input type="checkbox" value="mean" checked> Media</label>
+          <label><input type="checkbox" value="median" checked> Mediana</label>
+          <label><input type="checkbox" value="mode" checked> Moda</label>
+          <label><input type="checkbox" value="variance" checked> Varianza</label>
+          <label><input type="checkbox" value="stdDev" checked> Desv. Estándar</label>
+          <label><input type="checkbox" value="quartiles" checked> Cuartiles</label>
+          <label><input type="checkbox" value="fisher" checked> Fisher</label>
+          <label><input type="checkbox" value="kurtosis" checked> Curtosis</label>
+          <label><input type="checkbox" value="pearson" checked> Pearson</label>
         </div>
+      </div>
+
+      <!-- Entrada de Datos -->
+      <div id="ungroupedInputArea">
+        <label>Ingresa tus datos (separados por coma):</label>
+        <textarea id="rawDataInput" rows="5" placeholder="Ejemplo: 12, 15, 12, 18, 22, 19, 15, 14, 25"></textarea>
+      </div>
+
+      <button class="btn-primary" id="btnCalculate">Calcular Paso a Paso</button>
     </div>
 
-    <!-- User Profile Modal -->
-    <div id="user-modal" class="modal-overlay hidden">
-        <div class="profile-card-redesigned">
-            <button id="btn-close-modal" class="modal-close-btn">✕</button>
-            <div class="profile-banner"></div>
-            <div class="profile-avatar-wrapper">
-                <img src="" id="modal-user-img" class="profile-avatar-lg" alt="Usuario">
-            </div>
-            <div class="profile-body">
-                <h2 id="modal-user-name">Usuario</h2>
-                <p id="modal-user-email">email@ejemplo.com</p>
-                <div class="profile-badges">
-                    <span class="badge-premium">Pro Member</span>
-                    <span class="badge-status">Activo</span>
-                </div>
-                <div class="profile-stats-mini">
-                    <div>
-                        <strong id="stat-count-projects">0</strong>
-                        <span>Proyectos</span>
-                    </div>
-                    <div>
-                        <strong id="stat-count-calcs">0</strong>
-                        <span>Cálculos</span>
-                    </div>
-                </div>
-                <button id="btn-logout" class="btn btn-danger" style="margin-top: 20px; width: 100%; justify-content: center;">Cerrar Sesión</button>
-            </div>
+    <!-- Panel Central: Resultados y Gráficos -->
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Resultados Detallados</h2>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn-export" id="btnExportPDF">PDF</button>
+          <button class="btn-export" id="btnExportExcel">Excel</button>
+          <button class="btn-export" id="btnExportCSV">CSV</button>
         </div>
+      </div>
+
+      <!-- Visualización de Gráficos 3D / Plotly -->
+      <div id="chartContainer" style="width: 100%; height: 280px; background: rgba(0,0,0,0.2); border-radius: 8px;"></div>
+
+      <!-- Explicación Paso a Paso -->
+      <div id="stepByStepOutput" style="overflow-y: auto; max-height: 400px; padding-right: 5px;">
+        <p style="color: var(--text-muted);">Ingresa datos y presiona "Calcular Paso a Paso" o pídele al Chat de IA que resuelva tu ejercicio.</p>
+      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabaseClient.js"></script>
-    <script src="statsEngine.js"></script>
-    <script src="aiChat.js"></script>
-    <script src="app.js"></script>
+    <!-- Panel Derecho: Chat Bot IA -->
+    <div class="panel">
+      <h2>Asistente Estadístico IA</h2>
+      <div class="chat-box">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg ai">¡Hola! Soy tu IA. Copia y pega un problema de estadística aquí y yo me encargaré de todo.</div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+          <input type="text" id="chatInput" placeholder="Escribe un ejercicio o comando...">
+          <button class="btn-primary" id="btnSendChat" style="padding: 0 1rem;">Enviar</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal de Perfil de Usuario -->
+  <div class="modal" id="profileModal">
+    <div class="modal-content">
+      <h2 style="color: var(--cyan-neon); margin-bottom: 1rem;">Perfil de Usuario</h2>
+      <img id="modalUserAvatar" src="" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 1rem; border: 2px solid var(--cyan-neon);">
+      <h3 id="modalUserName" style="margin-bottom: 0.5rem;">Cargando...</h3>
+      <p id="modalUserEmail" style="color: var(--text-muted); margin-bottom: 1.5rem;">-</p>
+      <div style="display: flex; justify-content: center; gap: 1rem;">
+        <button class="btn-primary" id="btnCloseModal" style="background: #334155;">Cerrar</button>
+        <button class="btn-primary" id="btnLogout" style="background: var(--pink-neon);">Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
