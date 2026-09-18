@@ -23,7 +23,6 @@ function applyFreePlanRestrictions() {
     if (typeof PlanManager === 'undefined') return;
 
     if (PlanManager.isPro()) {
-        // Plan Pro → habilitar todo
         document.querySelectorAll('.checklist-container input[type="checkbox"]').forEach(chk => {
             chk.disabled = false;
             if (chk.parentElement) chk.parentElement.style.opacity = '1';
@@ -31,7 +30,6 @@ function applyFreePlanRestrictions() {
         return;
     }
 
-    // Plan gratuito → restringir medidas premium
     const premiumIds = [
         'chk-rango', 'chk-amplitud', 'chk-varianza', 'chk-desviacion',
         'chk-cuartiles', 'chk-deciles', 'chk-percentiles',
@@ -47,8 +45,6 @@ function applyFreePlanRestrictions() {
         if (el.parentElement) {
             el.parentElement.style.opacity = '0.45';
             el.parentElement.style.cursor = 'not-allowed';
-
-            // Al hacer clic mostrar modal de oferta
             el.parentElement.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -57,7 +53,6 @@ function applyFreePlanRestrictions() {
         }
     });
 
-    // Permitir solo estas medidas
     ['chk-media', 'chk-mediana', 'chk-moda', 'chk-k', 'chk-tabla'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -71,6 +66,19 @@ function applyFreePlanRestrictions() {
     });
 }
 
+function updatePlanBadge() {
+    const badge = document.getElementById('profile-plan-badge');
+    if (!badge) return;
+
+    if (typeof PlanManager !== 'undefined' && PlanManager.isPro()) {
+        badge.textContent = '👑 Plan Pro';
+        badge.className = 'badge-premium';
+    } else {
+        badge.textContent = 'Plan Gratuito';
+        badge.className = 'badge-premium badge-free';
+    }
+}
+
 // =========================================================
 // INICIO
 // =========================================================
@@ -78,6 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
     init3DScene();
     setupNavigation();
     applyFreePlanRestrictions();
+    updatePlanBadge();
 
     // ---------- Modal de oferta ----------
     document.getElementById('btn-close-upgrade')?.addEventListener('click', () => {
@@ -155,12 +164,10 @@ document.addEventListener("DOMContentLoaded", () => {
         renderResultsCards(currentResults);
         renderFrequencyTable(currentResults);
 
-        // Registrar uso del plan gratuito
         if (typeof PlanManager !== 'undefined') {
             PlanManager.registerCalculation();
         }
 
-        // Guardar en historial (solo si está logueado)
         const selectedChecklist = getSelectedChecklist();
         if (typeof saveCalculationToHistory === 'function') {
             await saveCalculationToHistory(currentDataType, rawInput, currentResults, selectedChecklist);
@@ -195,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------- Volver ----------
     document.getElementById('btn-back')?.addEventListener('click', () => switchView('view-input'));
 
-    // ---------- PERFIL ----------
+    // ---------- PERFIL (CORREGIDO) ----------
     const openProfile = async () => {
         const modal = document.getElementById('profile-modal');
         if (!modal) return;
@@ -205,25 +212,30 @@ document.addEventListener("DOMContentLoaded", () => {
             const { data: { user } } = await supabaseClient.auth.getUser();
             const btnLogout = document.getElementById('btn-logout');
 
-            if (user) {
-                const meta = user.user_metadata || {};
-                const name = meta.full_name || meta.name || 'Usuario';
-                const email = user.email || '';
-                const customAvatar = localStorage.getItem('statcalc_custom_avatar');
-                const avatar = customAvatar || meta.avatar_url || meta.picture || '';
-
-                const modalName = document.getElementById('modal-user-name');
-                const modalEmail = document.getElementById('modal-user-email');
-                const modalImg = document.getElementById('modal-user-img');
-
-                if (modalName) modalName.textContent = name;
-                if (modalEmail) modalEmail.textContent = email;
-                if (modalImg && avatar) modalImg.src = avatar;
-
-                if (btnLogout) btnLogout.classList.remove('hidden');
-            } else {
+            if (!user) {
+                document.getElementById('modal-user-name').textContent = 'Invitado';
+                document.getElementById('modal-user-email').textContent = 'No has iniciado sesión';
+                document.getElementById('modal-user-img').src = 'https://via.placeholder.com/100';
+                updatePlanBadge();
                 if (btnLogout) btnLogout.classList.add('hidden');
+                return;
             }
+
+            const meta = user.user_metadata || {};
+            const email = user.email || '';
+            const shortName = email.split('@')[0] || 'Usuario';
+            const fullName = meta.full_name || meta.name || shortName;
+
+            const customAvatar = localStorage.getItem('statcalc_custom_avatar');
+            const avatar = customAvatar || meta.avatar_url || meta.picture || 'https://via.placeholder.com/100';
+
+            document.getElementById('modal-user-name').textContent = fullName;
+            document.getElementById('modal-user-email').textContent = email;
+            document.getElementById('modal-user-img').src = avatar;
+
+            updatePlanBadge();
+
+            if (btnLogout) btnLogout.classList.remove('hidden');
 
             if (typeof loadProfileStats === 'function') {
                 await loadProfileStats();
@@ -262,13 +274,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        if (!file.type.startsWith('image/')) {
+            alert('Solo se permiten imágenes');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (ev) => {
             const result = ev.target.result;
-            const img = document.getElementById('modal-user-img');
+            const modalImg = document.getElementById('modal-user-img');
             const headerImg = document.getElementById('user-photo');
 
-            if (img) img.src = result;
+            if (modalImg) modalImg.src = result;
             if (headerImg) headerImg.src = result;
 
             localStorage.setItem('statcalc_custom_avatar', result);
@@ -276,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
         reader.readAsDataURL(file);
     });
 
-    // Cargar avatar personalizado al inicio
+    // Cargar avatar personalizado al iniciar
     const savedAvatar = localStorage.getItem('statcalc_custom_avatar');
     if (savedAvatar) {
         const img = document.getElementById('modal-user-img');
@@ -290,7 +307,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('dropdown-menu')?.classList.toggle('hidden');
     });
 
-    // Excel
     document.getElementById('export-excel')?.addEventListener('click', (e) => {
         e.preventDefault();
         if (!currentResults) {
@@ -322,7 +338,6 @@ document.addEventListener("DOMContentLoaded", () => {
         XLSX.writeFile(wb, "Resultados_StatCalc.xlsx");
     });
 
-    // PDF
     document.getElementById('export-pdf')?.addEventListener('click', (e) => {
         e.preventDefault();
         if (!currentResults) {
@@ -524,7 +539,6 @@ function renderFrequencyTable(results) {
 // PASOS
 // =========================================================
 function showSteps(title, steps) {
-    // En plan gratuito no permitir ver pasos de medidas premium
     if (typeof PlanManager !== 'undefined' && !PlanManager.isPro()) {
         const premiumTitles = ['Rango', 'Amplitud', 'Varianza', 'Desviación Estándar', 'Cuartiles', 'Deciles', 'Percentiles', 'Fisher', 'Kurtosis', 'Pearson'];
         if (premiumTitles.includes(title)) {

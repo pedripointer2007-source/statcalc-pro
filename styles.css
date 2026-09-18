@@ -962,3 +962,19 @@ body {
     transform: scale(1.05);
     box-shadow: 0 0 0 3px var(--primary);
 }
+
+.badge-free {
+    background: rgba(148, 163, 184, 0.2) !important;
+    color: #94a3b8 !important;
+    border-color: rgba(148, 163, 184, 0.4) !important;
+}
+
+#modal-user-img {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#modal-user-img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px var(--primary);
+}
