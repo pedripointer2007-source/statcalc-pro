@@ -1,9 +1,111 @@
 let currentResults = null;
 let currentDataType = 'no_agrupados';
 
+// Control de límites
+function checkLimitAndShowUpgrade(type = 'calculation') {
+    if (PlanManager.isPro()) return true;
+
+    if (type === 'calculation' && !PlanManager.canCalculate()) {
+        document.getElementById('upgrade-modal')?.classList.remove('hidden');
+        return false;
+    }
+    if (type === 'file' && !PlanManager.canUploadFile()) {
+        document.getElementById('upgrade-modal')?.classList.remove('hidden');
+        return false;
+    }
+    return true;
+}
+
+function applyFreePlanRestrictions() {
+    if (PlanManager.isPro()) return;
+
+    // Deshabilitar medidas premium
+    const premium = ['chk-rango','chk-amplitud','chk-varianza','chk-desviacion',
+                     'chk-cuartiles','chk-deciles','chk-percentiles',
+                     'chk-fisher','chk-kurtosis','chk-pearson'];
+    premium.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.checked = false;
+            el.disabled = true;
+            el.parentElement.style.opacity = '0.45';
+        }
+    });
+
+    // Solo permitir media, mediana, moda, k
+    ['chk-media','chk-mediana','chk-moda','chk-k'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = false;
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     init3DScene();
     setupNavigation();
+
+     // Aplicar restricciones al cargar
+        applyFreePlanRestrictions();
+
+    // Modal de oferta
+    document.getElementById('btn-close-upgrade')?.addEventListener('click', () => {
+        document.getElementById('upgrade-modal')?.classList.add('hidden');
+    });
+
+    document.getElementById('btn-continue-free')?.addEventListener('click', () => {
+        document.getElementById('upgrade-modal')?.classList.add('hidden');
+        applyFreePlanRestrictions();
+    });
+
+    document.getElementById('btn-license')?.addEventListener('click', () => {
+        document.getElementById('license-box')?.classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-activate-license')?.addEventListener('click', () => {
+        const pass = document.getElementById('license-input')?.value.trim();
+        if (pass === '45-30-38-47-67-51') {
+            PlanManager.activateProSession();
+            alert('✅ Licencia activada para esta sesión. ¡Disfruta Plan Pro!');
+            document.getElementById('upgrade-modal')?.classList.add('hidden');
+            location.reload(); // para quitar restricciones
+        } else {
+            alert('Contraseña incorrecta');
+        }
+});
+
+// Avatar upload
+const avatarInput = document.createElement('input');
+avatarInput.type = 'file';
+avatarInput.accept = 'image/*';
+avatarInput.style.display = 'none';
+document.body.appendChild(avatarInput);
+
+document.getElementById('modal-user-img')?.addEventListener('click', () => {
+    avatarInput.click();
+});
+
+avatarInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const img = document.getElementById('modal-user-img');
+        const headerImg = document.getElementById('user-photo');
+        if (img) img.src = ev.target.result;
+        if (headerImg) headerImg.src = ev.target.result;
+        // Guardamos temporalmente en localStorage
+        localStorage.setItem('statcalc_custom_avatar', ev.target.result);
+    };
+    reader.readAsDataURL(file);
+});
+
+// Cargar avatar personalizado si existe
+const savedAvatar = localStorage.getItem('statcalc_custom_avatar');
+if (savedAvatar) {
+    const img = document.getElementById('modal-user-img');
+    const headerImg = document.getElementById('user-photo');
+    if (img) img.src = savedAvatar;
+    if (headerImg) headerImg.src = savedAvatar;
+}
 
     // Tipo de datos
     document.getElementById('type-no-agrupados')?.addEventListener('click', () => {

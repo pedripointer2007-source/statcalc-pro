@@ -135,31 +135,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // OCR
     if (fileInput) {
-        fileInput.addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+    fileInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-            addMessage(`📁 Archivo subido: <b>${escapeHTML(file.name)}</b>`, "user");
+        if (!checkLimitAndShowUpgrade('file')) {
+            e.target.value = '';
+            return;
+        }
 
-            if (file.type.startsWith("image/")) {
-                addMessage("🔍 Procesando lectura OCR de la imagen...", "ai");
+        addMessage(`📁 Archivo subido: <b>${escapeHTML(file.name)}</b>`, "user");
+        PlanManager.registerFile();
+
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        // Imágenes → OCR
+        if (file.type.startsWith("image/")) {
+            addMessage("🔍 Procesando OCR...", "ai");
+            try {
+                const result = await Tesseract.recognize(file, 'spa');
+                const nums = extractNumbers(result.data.text);
+                if (nums.length >= 2) {
+                    conversationState.lastData = nums;
+                    applyToCalculator(nums, true);
+                    addMessage(`<b>📷 OCR Exitoso:</b> [${nums.join(", ")}]`);
+                } else {
+                    addMessage("No se encontraron suficientes números.");
+                }
+            } catch (err) {
+                addMessage("Error en OCR.");
+            }
+            return;
+        }
+
+        // Excel
+        if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+            addMessage("📊 Leyendo Excel...", "ai");
+            const reader = new FileReader();
+            reader.onload = (ev) => {
                 try {
-                    const result = await Tesseract.recognize(file, 'spa');
-                    const nums = extractNumbers(result.data.text);
-
+                    const data = new Uint8Array(ev.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    const flat = json.flat().filter(v => typeof v === 'number' || !isNaN(parseFloat(v)));
+                    const nums = flat.map(v => parseFloat(v)).filter(Number.isFinite);
                     if (nums.length >= 2) {
                         conversationState.lastData = nums;
                         applyToCalculator(nums, true);
-                        addMessage(`<b>📷 OCR Exitoso:</b> Se detectaron los valores [${nums.join(", ")}] y se enviaron a la calculadora.`);
+                        addMessage(`<b>✅ Excel procesado:</b> ${nums.length} valores detectados.`);
                     } else {
-                        addMessage("No se encontraron suficientes valores numéricos legibles.");
+                        addMessage("No se encontraron números válidos en el Excel.");
                     }
                 } catch (err) {
-                    addMessage("Error en el escaneo OCR.");
+                    addMessage("Error leyendo el archivo Excel.");
                 }
-            }
-        });
-    }
+            };
+            reader.readAsArrayBuffer(file);
+            return;
+        }
+
+        // PDF (extracción básica de texto)
+        if (ext === 'pdf') {
+            addMessage("📄 Leyendo PDF... (extracción de texto)", "ai");
+            // Nota: para una extracción robusta se recomienda pdf.js.
+            // Aquí hacemos una versión simple con FileReader + regex
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    // Fallback simple
+                    const text = ev.target.result;
+                    const nums = extractNumbers(typeof text === 'string' ? text : '');
+                    if (nums.length >= 2) {
+                        conversationState.lastData = nums;
+                        applyToCalculator(nums, true);
+                        addMessage(`<b>✅ PDF procesado:</b> ${nums.length} valores encontrados.`);
+                    } else {
+                        addMessage("No se detectaron suficientes números en el PDF. Prueba con una imagen o Excel.");
+                    }
+                } catch (err) {
+                    addMessage("Error procesando PDF.");
+                }
+            };
+            reader.readAsText(file);
+            return;
+        }
+
+        // Word (.docx) – requiere mammoth (añade el script si quieres soporte completo)
+        if (ext === 'docx') {
+            addMessage("📝 Los archivos Word (.docx) requieren una librería extra. Por ahora convierte el documento a PDF o Excel, o sube una captura de pantalla.", "ai");
+            return;
+        }
+
+        addMessage("Formato no soportado. Usa imagen, Excel (.xlsx) o PDF.", "ai");
+    });
+}
 
     // Eventos del chat
     if (toggleBtn && chatWindow) {

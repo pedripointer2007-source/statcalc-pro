@@ -268,5 +268,44 @@
             }
         });
     </script>
+
+<!-- ==================== MODAL DE OFERTA / LÍMITE ==================== -->
+<div class="modal-overlay hidden" id="upgrade-modal">
+    <div class="modal-glass" style="width: 420px; max-width: 95vw; text-align: left; padding: 28px;">
+        <button class="btn-close modal-close-btn" id="btn-close-upgrade">✕</button>
+        
+        <h2 style="margin-top:0; color: #fde047;">🚀 ¡Has alcanzado el límite gratuito!</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Ya usaste tus 2 cálculos / archivos gratis. Desbloquea todo el potencial de StatCalc Pro.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+            <div class="plan-card" style="border: 1px solid var(--primary); border-radius: 12px; padding: 16px;">
+                <h3 style="margin:0 0 6px 0;">Plan Pro — $3 / mes</h3>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">Cálculos ilimitados + todas las medidas + pasos detallados + guardado</p>
+            </div>
+            <div class="plan-card" style="border: 1px solid #22c55e; border-radius: 12px; padding: 16px;">
+                <h3 style="margin:0 0 6px 0;">Plan Pro Plus — $10 / año</h3>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">Todo lo del Plan Pro + prioridad y soporte</p>
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 14px; border-radius: 10px; margin-bottom: 18px;">
+            <p style="margin:0 0 6px 0; font-size:0.9rem;"><b>Depositar a:</b></p>
+            <p style="margin:0; font-size:1.05rem;">📱 <b>88408665</b></p>
+            <p style="margin:4px 0 0 0; font-size:0.9rem;">Pedro Ismael Valverde Zapata</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="btn-continue-free" style="flex:1;">Continuar con plan gratuito</button>
+            <button class="btn btn-secondary" id="btn-license" style="flex:1;">Licencia</button>
+        </div>
+
+        <div id="license-box" class="hidden" style="margin-top: 16px;">
+            <input type="password" id="license-input" class="glass-input" placeholder="Ingresa la contraseña de licencia">
+            <button class="btn btn-primary" id="btn-activate-license" style="width:100%; margin-top:10px;">Activar Licencia</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
