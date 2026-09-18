@@ -30,6 +30,7 @@
                 <a href="#" class="nav-item" id="nav-projects"><i data-lucide="folder-plus"></i> Proyectos</a>
                 <a href="#" class="nav-item" id="nav-history"><i data-lucide="history"></i> Historial</a>
                 <a href="#" class="nav-item" id="btn-open-profile-sidebar"><i data-lucide="user"></i> Perfil</a>
+                <a href="#" class="nav-item hidden" id="nav-admin"><i data-lucide="shield"></i> Admin</a>
             </nav>
             <div class="sidebar-footer glass-card">
                 <div class="icon-3d-box">📊</div>
@@ -170,6 +171,13 @@
                 <h2>Historial de Cálculos</h2>
                 <div id="history-list-container" class="cards-grid"></div>
             </section>
+
+            <!-- VISTA 5: ADMIN -->
+            <section id="view-admin" class="view-section hidden">
+                <h2>🛡️ Panel de Administración</h2>
+                <p>Solicitudes de pago pendientes de confirmación.</p>
+                <div id="admin-payments-container" class="cards-grid"></div>
+            </section>
         </main>
 
         <!-- Panel de Pasos -->
@@ -235,7 +243,7 @@
                 
                 <div class="chat-input-area">
                     <label for="chat-file-input" class="btn-icon-attach" title="Subir imagen">📷
-                        <input type="file" id="chat-file-input" accept="image/*,.txt,.csv" style="display:none;">
+                        <input type="file" id="chat-file-input" accept="image/*,.txt,.csv,.xlsx,.xls,.pdf" style="display:none;">
                     </label>
                     <input type="text" id="chat-input" placeholder="Ej: Calcula la media de 10, 20, 30...">
                     <button id="btn-send-chat">Enviar</button>
@@ -307,14 +315,13 @@
         </div>
 
         <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
-    <button class="btn btn-primary" id="btn-request-pro" style="width:100%;">
-        Ya pagué – Solicitar Plan Pro ($3)
-    </button>
-    <button class="btn btn-secondary" id="btn-request-pro-plus" style="width:100%;">
-        Ya pagué – Solicitar Plan Pro Plus ($10)
-    </button>
-</div>
-
+            <button class="btn btn-primary" id="btn-request-pro" style="width:100%;">
+                Ya pagué – Solicitar Plan Pro ($3)
+            </button>
+            <button class="btn btn-secondary" id="btn-request-pro-plus" style="width:100%;">
+                Ya pagué – Solicitar Plan Pro Plus ($10)
+            </button>
+        </div>
     </div>
 </div>
 </body>
