@@ -30,20 +30,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ========== BOTÓN CALCULAR ==========
     document.getElementById('btn-calcular')?.addEventListener('click', async () => {
-        const rawInput = document.getElementById('data-input').value;
-        const cleanNumbers = rawInput.split(/[\n,;\s]+/).map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+    const rawInput = document.getElementById('data-input').value;
+    const cleanNumbers = rawInput.split(/[\n,;\s]+/).map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
 
         if (cleanNumbers.length < 2) {
-            alert("Ingresa al menos dos números válidos para realizar los cálculos.");
+            alert("Ingresa al menos dos números válidos.");
             return;
         }
 
-        currentResults = StatsEngine.calculateNoAgrupados(cleanNumbers);
+        // Elegir motor según tipo de dato
+        if (currentDataType === 'agrupados') {
+            currentResults = StatsEngine.calculateAgrupados(cleanNumbers);
+        } else {
+            currentResults = StatsEngine.calculateNoAgrupados(cleanNumbers);
+        }
+
+        document.getElementById('results-data-type').textContent = 
+            currentDataType === 'agrupados' ? 'Agrupados' : 'No agrupados';
+
         renderResultsCards(currentResults);
         renderFrequencyTable(currentResults);
 
         const selectedChecklist = getSelectedChecklist();
-
         if (typeof saveCalculationToHistory === 'function') {
             await saveCalculationToHistory(currentDataType, rawInput, currentResults, selectedChecklist);
         }
@@ -429,3 +437,7 @@ function init3DScene() {
     }
     animate();
 }
+
+document.getElementById('btn-mobile-menu')?.addEventListener('click', () => {
+    document.querySelector('.sidebar')?.classList.toggle('open');
+});
