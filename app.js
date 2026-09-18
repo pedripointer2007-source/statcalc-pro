@@ -1,8 +1,11 @@
 let currentResults = null;
 let currentDataType = 'no_agrupados';
 
-// Control de límites
+// =========================================================
+// CONTROL DE LÍMITES Y PLAN
+// =========================================================
 function checkLimitAndShowUpgrade(type = 'calculation') {
+    if (typeof PlanManager === 'undefined') return true;
     if (PlanManager.isPro()) return true;
 
     if (type === 'calculation' && !PlanManager.canCalculate()) {
@@ -17,36 +20,66 @@ function checkLimitAndShowUpgrade(type = 'calculation') {
 }
 
 function applyFreePlanRestrictions() {
-    if (PlanManager.isPro()) return;
+    if (typeof PlanManager === 'undefined') return;
 
-    // Deshabilitar medidas premium
-    const premium = ['chk-rango','chk-amplitud','chk-varianza','chk-desviacion',
-                     'chk-cuartiles','chk-deciles','chk-percentiles',
-                     'chk-fisher','chk-kurtosis','chk-pearson'];
-    premium.forEach(id => {
+    if (PlanManager.isPro()) {
+        // Plan Pro → habilitar todo
+        document.querySelectorAll('.checklist-container input[type="checkbox"]').forEach(chk => {
+            chk.disabled = false;
+            if (chk.parentElement) chk.parentElement.style.opacity = '1';
+        });
+        return;
+    }
+
+    // Plan gratuito → restringir medidas premium
+    const premiumIds = [
+        'chk-rango', 'chk-amplitud', 'chk-varianza', 'chk-desviacion',
+        'chk-cuartiles', 'chk-deciles', 'chk-percentiles',
+        'chk-fisher', 'chk-kurtosis', 'chk-pearson'
+    ];
+
+    premiumIds.forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            el.checked = false;
-            el.disabled = true;
+        if (!el) return;
+
+        el.checked = false;
+        el.disabled = true;
+        if (el.parentElement) {
             el.parentElement.style.opacity = '0.45';
+            el.parentElement.style.cursor = 'not-allowed';
+
+            // Al hacer clic mostrar modal de oferta
+            el.parentElement.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                document.getElementById('upgrade-modal')?.classList.remove('hidden');
+            };
         }
     });
 
-    // Solo permitir media, mediana, moda, k
-    ['chk-media','chk-mediana','chk-moda','chk-k'].forEach(id => {
+    // Permitir solo estas medidas
+    ['chk-media', 'chk-mediana', 'chk-moda', 'chk-k', 'chk-tabla'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.disabled = false;
+        if (el) {
+            el.disabled = false;
+            if (el.parentElement) {
+                el.parentElement.style.opacity = '1';
+                el.parentElement.style.cursor = 'pointer';
+                el.parentElement.onclick = null;
+            }
+        }
     });
 }
 
+// =========================================================
+// INICIO
+// =========================================================
 document.addEventListener("DOMContentLoaded", () => {
     init3DScene();
     setupNavigation();
+    applyFreePlanRestrictions();
 
-     // Aplicar restricciones al cargar
-        applyFreePlanRestrictions();
-
-    // Modal de oferta
+    // ---------- Modal de oferta ----------
     document.getElementById('btn-close-upgrade')?.addEventListener('click', () => {
         document.getElementById('upgrade-modal')?.classList.add('hidden');
     });
@@ -66,61 +99,26 @@ document.addEventListener("DOMContentLoaded", () => {
             PlanManager.activateProSession();
             alert('✅ Licencia activada para esta sesión. ¡Disfruta Plan Pro!');
             document.getElementById('upgrade-modal')?.classList.add('hidden');
-            location.reload(); // para quitar restricciones
+            location.reload();
         } else {
             alert('Contraseña incorrecta');
         }
-});
+    });
 
-// Avatar upload
-const avatarInput = document.createElement('input');
-avatarInput.type = 'file';
-avatarInput.accept = 'image/*';
-avatarInput.style.display = 'none';
-document.body.appendChild(avatarInput);
-
-document.getElementById('modal-user-img')?.addEventListener('click', () => {
-    avatarInput.click();
-});
-
-avatarInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        const img = document.getElementById('modal-user-img');
-        const headerImg = document.getElementById('user-photo');
-        if (img) img.src = ev.target.result;
-        if (headerImg) headerImg.src = ev.target.result;
-        // Guardamos temporalmente en localStorage
-        localStorage.setItem('statcalc_custom_avatar', ev.target.result);
-    };
-    reader.readAsDataURL(file);
-});
-
-// Cargar avatar personalizado si existe
-const savedAvatar = localStorage.getItem('statcalc_custom_avatar');
-if (savedAvatar) {
-    const img = document.getElementById('modal-user-img');
-    const headerImg = document.getElementById('user-photo');
-    if (img) img.src = savedAvatar;
-    if (headerImg) headerImg.src = savedAvatar;
-}
-
-    // Tipo de datos
+    // ---------- Tipo de datos ----------
     document.getElementById('type-no-agrupados')?.addEventListener('click', () => {
         currentDataType = 'no_agrupados';
-        document.getElementById('type-no-agrupados').classList.add('active');
-        document.getElementById('type-agrupados').classList.remove('active');
+        document.getElementById('type-no-agrupados')?.classList.add('active');
+        document.getElementById('type-agrupados')?.classList.remove('active');
     });
 
     document.getElementById('type-agrupados')?.addEventListener('click', () => {
         currentDataType = 'agrupados';
-        document.getElementById('type-agrupados').classList.add('active');
-        document.getElementById('type-no-agrupados').classList.remove('active');
+        document.getElementById('type-agrupados')?.classList.add('active');
+        document.getElementById('type-no-agrupados')?.classList.remove('active');
     });
 
-    // Limpiar
+    // ---------- Limpiar ----------
     document.getElementById('btn-limpiar')?.addEventListener('click', () => {
         document.getElementById('data-input').value = "";
         document.getElementById('project-name-input').value = "";
@@ -130,29 +128,39 @@ if (savedAvatar) {
         document.getElementById('data-input')?.focus();
     });
 
-    // ========== BOTÓN CALCULAR ==========
+    // ---------- BOTÓN CALCULAR ----------
     document.getElementById('btn-calcular')?.addEventListener('click', async () => {
-    const rawInput = document.getElementById('data-input').value;
-    const cleanNumbers = rawInput.split(/[\n,;\s]+/).map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+        if (!checkLimitAndShowUpgrade('calculation')) return;
+
+        const rawInput = document.getElementById('data-input').value;
+        const cleanNumbers = rawInput
+            .split(/[\n,;\s]+/)
+            .map(x => parseFloat(x.trim()))
+            .filter(x => !isNaN(x));
 
         if (cleanNumbers.length < 2) {
             alert("Ingresa al menos dos números válidos.");
             return;
         }
 
-        // Elegir motor según tipo de dato
         if (currentDataType === 'agrupados') {
             currentResults = StatsEngine.calculateAgrupados(cleanNumbers);
         } else {
             currentResults = StatsEngine.calculateNoAgrupados(cleanNumbers);
         }
 
-        document.getElementById('results-data-type').textContent = 
+        document.getElementById('results-data-type').textContent =
             currentDataType === 'agrupados' ? 'Agrupados' : 'No agrupados';
 
         renderResultsCards(currentResults);
         renderFrequencyTable(currentResults);
 
+        // Registrar uso del plan gratuito
+        if (typeof PlanManager !== 'undefined') {
+            PlanManager.registerCalculation();
+        }
+
+        // Guardar en historial (solo si está logueado)
         const selectedChecklist = getSelectedChecklist();
         if (typeof saveCalculationToHistory === 'function') {
             await saveCalculationToHistory(currentDataType, rawInput, currentResults, selectedChecklist);
@@ -161,8 +169,13 @@ if (savedAvatar) {
         switchView('view-results');
     });
 
-    // Guardar Proyecto
+    // ---------- GUARDAR PROYECTO ----------
     document.getElementById('btn-save-project')?.addEventListener('click', async () => {
+        if (typeof PlanManager !== 'undefined' && !PlanManager.isPro()) {
+            document.getElementById('upgrade-modal')?.classList.remove('hidden');
+            return;
+        }
+
         const name = document.getElementById('project-name-input').value.trim() || 'Proyecto sin título';
         const rawInput = document.getElementById('data-input').value;
 
@@ -175,17 +188,49 @@ if (savedAvatar) {
             await saveProjectToSupabase(name, currentDataType, rawInput);
             alert(`Proyecto "${name}" guardado exitosamente.`);
         } else {
-            alert("Función de guardado no disponible en este momento.");
+            alert("Función de guardado no disponible.");
         }
     });
 
-    // Volver
+    // ---------- Volver ----------
     document.getElementById('btn-back')?.addEventListener('click', () => switchView('view-input'));
 
-    // Modal Perfil
+    // ---------- PERFIL ----------
     const openProfile = async () => {
-        document.getElementById('profile-modal')?.classList.remove('hidden');
-        if (typeof loadProfileStats === 'function') await loadProfileStats();
+        const modal = document.getElementById('profile-modal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+
+        try {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const btnLogout = document.getElementById('btn-logout');
+
+            if (user) {
+                const meta = user.user_metadata || {};
+                const name = meta.full_name || meta.name || 'Usuario';
+                const email = user.email || '';
+                const customAvatar = localStorage.getItem('statcalc_custom_avatar');
+                const avatar = customAvatar || meta.avatar_url || meta.picture || '';
+
+                const modalName = document.getElementById('modal-user-name');
+                const modalEmail = document.getElementById('modal-user-email');
+                const modalImg = document.getElementById('modal-user-img');
+
+                if (modalName) modalName.textContent = name;
+                if (modalEmail) modalEmail.textContent = email;
+                if (modalImg && avatar) modalImg.src = avatar;
+
+                if (btnLogout) btnLogout.classList.remove('hidden');
+            } else {
+                if (btnLogout) btnLogout.classList.add('hidden');
+            }
+
+            if (typeof loadProfileStats === 'function') {
+                await loadProfileStats();
+            }
+        } catch (err) {
+            console.error('Error cargando perfil:', err);
+        }
     };
 
     document.getElementById('btn-user-avatar')?.addEventListener('click', openProfile);
@@ -202,7 +247,45 @@ if (savedAvatar) {
         if (typeof logout === 'function') logout();
     });
 
-    // ========== EXPORTACIÓN ==========
+    // ---------- SUBIR AVATAR ----------
+    const avatarInput = document.createElement('input');
+    avatarInput.type = 'file';
+    avatarInput.accept = 'image/*';
+    avatarInput.style.display = 'none';
+    document.body.appendChild(avatarInput);
+
+    document.getElementById('modal-user-img')?.addEventListener('click', () => {
+        avatarInput.click();
+    });
+
+    avatarInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const result = ev.target.result;
+            const img = document.getElementById('modal-user-img');
+            const headerImg = document.getElementById('user-photo');
+
+            if (img) img.src = result;
+            if (headerImg) headerImg.src = result;
+
+            localStorage.setItem('statcalc_custom_avatar', result);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Cargar avatar personalizado al inicio
+    const savedAvatar = localStorage.getItem('statcalc_custom_avatar');
+    if (savedAvatar) {
+        const img = document.getElementById('modal-user-img');
+        const headerImg = document.getElementById('user-photo');
+        if (img) img.src = savedAvatar;
+        if (headerImg) headerImg.src = savedAvatar;
+    }
+
+    // ---------- EXPORTACIÓN ----------
     document.getElementById('btn-export-main')?.addEventListener('click', () => {
         document.getElementById('dropdown-menu')?.classList.toggle('hidden');
     });
@@ -222,7 +305,6 @@ if (savedAvatar) {
                 Resultado: currentResults[k].val
             }));
 
-        // También exportar la tabla de frecuencias
         if (currentResults.tabla?.data) {
             dataToExport.push({});
             dataToExport.push({ Medida: "TABLA DE FRECUENCIAS", Resultado: "" });
@@ -269,7 +351,6 @@ if (savedAvatar) {
             y += 8;
         });
 
-        // Tabla de frecuencias
         if (currentResults.tabla?.data) {
             y += 10;
             doc.setFont(undefined, 'bold');
@@ -283,16 +364,23 @@ if (savedAvatar) {
                     doc.addPage();
                     y = 20;
                 }
-                doc.text(`X=${row.valor} | xi=${row.xi} | fi=${row.fi} | Fi=${row.Fi} | %=${row.pct} | xi·fi=${row.xiFi}`, 14, y);
+                doc.text(`X=${row.valor} | xi=${row.xi} | fi=${row.fi} | Fi=${row.Fi} | %=${row.pct}`, 14, y);
                 y += 6;
             });
         }
 
         doc.save("Resultados_StatCalc.pdf");
     });
+
+    // ---------- Menú móvil ----------
+    document.getElementById('btn-mobile-menu')?.addEventListener('click', () => {
+        document.getElementById('sidebar')?.classList.toggle('open');
+    });
 });
 
-// ========== NAVEGACIÓN ==========
+// =========================================================
+// NAVEGACIÓN
+// =========================================================
 function setupNavigation() {
     const navs = [
         { btn: 'nav-inicio', view: 'view-input' },
@@ -318,11 +406,16 @@ function switchView(viewId) {
 }
 
 function getSelectedChecklist() {
-    const mapChecklist = ['rango', 'amplitud', 'k', 'media', 'mediana', 'varianza', 'desviacion', 'cuartiles', 'deciles', 'percentiles', 'fisher', 'kurtosis', 'pearson', 'moda', 'tabla'];
+    const mapChecklist = [
+        'rango', 'amplitud', 'k', 'media', 'mediana', 'varianza', 'desviacion',
+        'cuartiles', 'deciles', 'percentiles', 'fisher', 'kurtosis', 'pearson', 'moda', 'tabla'
+    ];
     return mapChecklist.filter(id => document.getElementById(`chk-${id}`)?.checked);
 }
 
-// ========== TARJETAS DE RESULTADOS ==========
+// =========================================================
+// RESULTADOS
+// =========================================================
 function renderResultsCards(results) {
     const container = document.getElementById('cards-container');
     if (!container) return;
@@ -354,14 +447,15 @@ function renderResultsCards(results) {
             card.innerHTML = `
                 <h4>${item.title}</h4>
                 <div class="val">${data.val}</div>
-                <button class="btn btn-secondary btn-sm" onclick="showSteps('${item.title}', ${JSON.stringify(data.steps).replace(/"/g, '&quot;')})">Ver pasos</button>
+                <button class="btn btn-secondary btn-sm" onclick="showSteps('${item.title}', ${JSON.stringify(data.steps).replace(/"/g, '&quot;')})">
+                    Ver pasos
+                </button>
             `;
             container.appendChild(card);
         }
     });
 }
 
-// ========== TABLA DE FRECUENCIAS AVANZADA ==========
 function renderFrequencyTable(results) {
     const container = document.getElementById('table-results-container');
     if (!container || !results?.tabla?.data || !document.getElementById('chk-tabla')?.checked) {
@@ -370,13 +464,9 @@ function renderFrequencyTable(results) {
     }
 
     const dataRows = results.tabla.data;
-
-    // Columnas básicas siempre
     const showFi = document.getElementById('col-fi')?.checked ?? true;
     const showFiAcc = document.getElementById('col-Fi-acc')?.checked ?? true;
     const showPct = document.getElementById('col-pct')?.checked ?? true;
-
-    // Columnas de momentos (solo si la medida está marcada)
     const showVar = document.getElementById('chk-varianza')?.checked;
     const showFisher = document.getElementById('chk-fisher')?.checked;
     const showKurtosis = document.getElementById('chk-kurtosis')?.checked;
@@ -415,7 +505,6 @@ function renderFrequencyTable(results) {
         </tr>`;
     });
 
-    // Fila de totales
     html += `<tr style="background:rgba(99,102,241,0.15); font-weight:bold;">
         <td colspan="2">TOTALES</td>
         ${showFi ? `<td>${dataRows.reduce((a, r) => a + r.fi, 0)}</td>` : ''}
@@ -428,22 +517,25 @@ function renderFrequencyTable(results) {
     </tr>`;
 
     html += `</tbody></table></div>`;
-
-    // Nota explicativa
-    if (showVar || showFisher || showKurtosis) {
-        html += `<p style="margin-top:12px; font-size:0.85rem; color:var(--text-muted);">
-            <i>Las columnas de momentos solo se muestran porque seleccionaste Varianza / Fisher / Kurtosis.</i>
-        </p>`;
-    }
-
     container.innerHTML = html;
 }
 
-// ========== PASOS DETALLADOS ==========
+// =========================================================
+// PASOS
+// =========================================================
 function showSteps(title, steps) {
+    // En plan gratuito no permitir ver pasos de medidas premium
+    if (typeof PlanManager !== 'undefined' && !PlanManager.isPro()) {
+        const premiumTitles = ['Rango', 'Amplitud', 'Varianza', 'Desviación Estándar', 'Cuartiles', 'Deciles', 'Percentiles', 'Fisher', 'Kurtosis', 'Pearson'];
+        if (premiumTitles.includes(title)) {
+            document.getElementById('upgrade-modal')?.classList.remove('hidden');
+            return;
+        }
+    }
+
     document.getElementById('steps-title').innerText = `Desglose - ${title}`;
     const content = document.getElementById('steps-content');
-    content.innerHTML = steps.map((s, idx) => `
+    content.innerHTML = steps.map(s => `
         <div class="step-box" style="margin-bottom: 14px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
             <div>${s}</div>
         </div>
@@ -455,11 +547,14 @@ document.getElementById('btn-close-steps')?.addEventListener('click', () => {
     document.getElementById('steps-panel')?.classList.add('hidden');
 });
 
-// ========== PROYECTOS E HISTORIAL ==========
+// =========================================================
+// PROYECTOS E HISTORIAL
+// =========================================================
 async function loadUserProjects() {
     const container = document.getElementById('projects-list-container');
     if (!container) return;
-    container.innerHTML = "Cargando proyectos guardados...";
+    container.innerHTML = "Cargando proyectos...";
+
     if (typeof fetchProjectsFromSupabase === 'function') {
         const projects = await fetchProjectsFromSupabase();
         if (!projects || projects.length === 0) {
@@ -470,7 +565,9 @@ async function loadUserProjects() {
             <div class="stat-card">
                 <h4>${p.name}</h4>
                 <p style="font-size: 0.8rem; color: var(--text-muted);">${new Date(p.created_at).toLocaleDateString()}</p>
-                <button class="btn btn-primary btn-sm" onclick="loadProjectData('${p.input_data.replace(/'/g, "\\'")}')">Cargar Proyecto</button>
+                <button class="btn btn-primary btn-sm" onclick="loadProjectData('${String(p.input_data).replace(/'/g, "\\'")}')">
+                    Cargar Proyecto
+                </button>
             </div>
         `).join('');
     }
@@ -480,17 +577,18 @@ async function loadUserHistory() {
     const container = document.getElementById('history-list-container');
     if (!container) return;
     container.innerHTML = "Cargando historial...";
+
     if (typeof fetchHistoryFromSupabase === 'function') {
         const history = await fetchHistoryFromSupabase();
         if (!history || history.length === 0) {
-            container.innerHTML = "<p>No hay historial de cálculos.</p>";
+            container.innerHTML = "<p>No hay historial de cálculos. (Debes estar logueado y haber calculado)</p>";
             return;
         }
         container.innerHTML = history.map(h => `
             <div class="stat-card">
                 <h4>Cálculo (${h.data_type})</h4>
                 <p style="font-size:0.8rem; color: var(--text-muted);">${new Date(h.created_at).toLocaleDateString()}</p>
-                <p><strong>Datos:</strong> ${h.input_data.substring(0, 40)}...</p>
+                <p><strong>Datos:</strong> ${h.input_data.substring(0, 50)}${h.input_data.length > 50 ? '...' : ''}</p>
             </div>
         `).join('');
     }
@@ -502,13 +600,15 @@ function loadProjectData(dataText) {
     document.getElementById('nav-inicio')?.click();
 }
 
-// ========== ESCENA 3D ==========
+// =========================================================
+// ESCENA 3D
+// =========================================================
 function init3DScene() {
     const container = document.getElementById('canvas-3d-container');
     if (!container) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight || 1, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -539,7 +639,3 @@ function init3DScene() {
     }
     animate();
 }
-
-document.getElementById('btn-mobile-menu')?.addEventListener('click', () => {
-    document.querySelector('.sidebar')?.classList.toggle('open');
-});

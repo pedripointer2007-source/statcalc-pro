@@ -7,11 +7,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ==================== PLAN / LÍMITES ====================
 const PlanManager = {
     getUsage() {
-        const data = localStorage.getItem('statcalc_usage');
+        const data = sessionStorage.getItem('statcalc_usage');
         return data ? JSON.parse(data) : { calculations: 0, files: 0, isPro: false };
     },
     saveUsage(usage) {
-        localStorage.setItem('statcalc_usage', JSON.stringify(usage));
+        sessionStorage.setItem('statcalc_usage', JSON.stringify(usage));
     },
     isPro() {
         return this.getUsage().isPro === true;
