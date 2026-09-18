@@ -114,6 +114,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // ---------- Solicitudes de pago ----------
+    document.getElementById('btn-request-pro')?.addEventListener('click', async () => {
+        const ok = await createPaymentRequest('pro');
+        if (ok) document.getElementById('upgrade-modal')?.classList.add('hidden');
+    });
+
+    document.getElementById('btn-request-pro-plus')?.addEventListener('click', async () => {
+        const ok = await createPaymentRequest('pro_plus');
+        if (ok) document.getElementById('upgrade-modal')?.classList.add('hidden');
+    });
+
     // ---------- Tipo de datos ----------
     document.getElementById('type-no-agrupados')?.addEventListener('click', () => {
         currentDataType = 'no_agrupados';
@@ -202,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------- Volver ----------
     document.getElementById('btn-back')?.addEventListener('click', () => switchView('view-input'));
 
-    // ---------- PERFIL (CORREGIDO) ----------
+    // ---------- PERFIL ----------
     const openProfile = async () => {
         const modal = document.getElementById('profile-modal');
         if (!modal) return;
@@ -293,7 +304,6 @@ document.addEventListener("DOMContentLoaded", () => {
         reader.readAsDataURL(file);
     });
 
-    // Cargar avatar personalizado al iniciar
     const savedAvatar = localStorage.getItem('statcalc_custom_avatar');
     if (savedAvatar) {
         const img = document.getElementById('modal-user-img');
@@ -401,7 +411,8 @@ function setupNavigation() {
         { btn: 'nav-inicio', view: 'view-input' },
         { btn: 'nav-calc', view: 'view-input' },
         { btn: 'nav-projects', view: 'view-projects', action: loadUserProjects },
-        { btn: 'nav-history', view: 'view-history', action: loadUserHistory }
+        { btn: 'nav-history', view: 'view-history', action: loadUserHistory },
+        { btn: 'nav-admin', view: 'view-admin', action: loadAdminPayments }
     ];
 
     navs.forEach(item => {
@@ -613,6 +624,50 @@ function loadProjectData(dataText) {
     switchView('view-input');
     document.getElementById('nav-inicio')?.click();
 }
+
+// =========================================================
+// PANEL ADMIN
+// =========================================================
+async function loadAdminPayments() {
+    const container = document.getElementById('admin-payments-container');
+    if (!container) return;
+
+    container.innerHTML = "Cargando solicitudes...";
+
+    const requests = await fetchPendingPayments();
+
+    if (!requests || requests.length === 0) {
+        container.innerHTML = "<p>No hay solicitudes pendientes.</p>";
+        return;
+    }
+
+    container.innerHTML = requests.map(r => `
+        <div class="stat-card">
+            <h4>${r.full_name || 'Usuario'}</h4>
+            <p style="font-size:0.85rem; color:var(--text-muted);">${r.email}</p>
+            <p><b>Plan solicitado:</b> ${r.plan_requested === 'pro_plus' ? 'Pro Plus ($10)' : 'Pro ($3)'}</p>
+            <p style="font-size:0.8rem;">${new Date(r.created_at).toLocaleString()}</p>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="btn btn-primary btn-sm" onclick="handleApprove('${r.id}', '${r.user_id}', '${r.plan_requested}')">
+                    ✅ Aprobar
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="handleReject('${r.id}')">
+                    ❌ Rechazar
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.handleApprove = async (requestId, userId, plan) => {
+    const ok = await approvePaymentRequest(requestId, userId, plan);
+    if (ok) loadAdminPayments();
+};
+
+window.handleReject = async (requestId) => {
+    const ok = await rejectPaymentRequest(requestId);
+    if (ok) loadAdminPayments();
+};
 
 // =========================================================
 // ESCENA 3D

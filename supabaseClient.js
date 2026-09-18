@@ -4,6 +4,13 @@ const SUPABASE_ANON_KEY = "sb_publishable_sDnS3IG0ZGBgPQtlP9d23A_rL95opcl";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ==================== ADMIN ====================
+const ADMIN_EMAIL = "pedripointer2007@gmail.com";
+
+function isAdmin(email) {
+    return email && email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
+
 // ==================== PLAN / LÍMITES ====================
 const PlanManager = {
     getUsage() {
@@ -61,7 +68,7 @@ async function loginWithGoogle() {
 }
 
 async function logout() {
-    PlanManager.resetToFree(); // al cerrar sesión se pierde la licencia de sesión
+    PlanManager.resetToFree();
     await supabaseClient.auth.signOut();
     window.location.reload();
 }
@@ -92,7 +99,6 @@ async function saveProjectToSupabase(name, dataType, inputData) {
             return;
         }
 
-        // También lo guardamos en el historial
         await saveCalculationToHistory(dataType, inputData, {}, []);
 
         const { error } = await supabaseClient.from('projects').insert({
@@ -168,6 +174,144 @@ async function loadProfileStats() {
     } catch (e) {}
 }
 
+// ==================== ADMIN FUNCTIONS ====================
+async function createPaymentRequest(planRequested = 'pro') {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            alert("Debes iniciar sesión para solicitar el plan.");
+            return false;
+        }
+
+        const meta = user.user_metadata || {};
+        const { error } = await supabaseClient.from('payment_requests').insert({
+            user_id: user.id,
+            email: user.email,
+            full_name: meta.full_name || meta.name || user.email.split('@')[0],
+            plan_requested: planRequested,
+            status: 'pending'
+        });
+
+        if (error) {
+            console.error(error);
+            alert("Error al enviar la solicitud. Intenta de nuevo.");
+            return false;
+        }
+
+        alert("✅ Solicitud enviada. Cuando confirmemos tu pago, activaremos tu plan.");
+        return true;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+}
+
+async function fetchPendingPayments() {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !isAdmin(user.email)) return [];
+
+        const { data, error } = await supabaseClient
+            .from('payment_requests')
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error(error);
+            return [];
+        }
+        return data || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+async function approvePaymentRequest(requestId, userId, plan) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !isAdmin(user.email)) {
+            alert("No tienes permisos de administrador.");
+            return false;
+        }
+
+        const { error: err1 } = await supabaseClient
+            .from('payment_requests')
+            .update({
+                status: 'approved',
+                processed_at: new Date().toISOString()
+            })
+            .eq('id', requestId);
+
+        if (err1) {
+            console.error(err1);
+            alert("Error al actualizar la solicitud.");
+            return false;
+        }
+
+        const { error: err2 } = await supabaseClient
+            .from('profiles')
+            .update({
+                plan_type: plan,
+                is_premium: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        if (err2) {
+            console.error(err2);
+            alert("Error al asignar el plan al usuario.");
+            return false;
+        }
+
+        alert(`✅ Plan ${plan.toUpperCase()} asignado correctamente.`);
+        return true;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+}
+
+async function rejectPaymentRequest(requestId) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !isAdmin(user.email)) return false;
+
+        await supabaseClient
+            .from('payment_requests')
+            .update({
+                status: 'rejected',
+                processed_at: new Date().toISOString()
+            })
+            .eq('id', requestId);
+
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function loadUserPlanFromDB() {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('plan_type, is_premium')
+            .eq('id', user.id)
+            .single();
+
+        if (error || !data) return;
+
+        if (data.is_premium || data.plan_type === 'pro' || data.plan_type === 'pro_plus') {
+            PlanManager.activateProSession();
+        }
+    } catch (e) {
+        console.warn("No se pudo cargar el plan:", e);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const btnLogin = document.getElementById('btn-login-google');
     if (btnLogin) {
@@ -177,7 +321,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Botón cerrar sesión solo visible si hay sesión
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) btnLogout.classList.add('hidden');
 
@@ -185,6 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const btnLogout = document.getElementById('btn-logout');
         const btnLoginEl = document.getElementById('btn-login-google');
         const btnAvatar = document.getElementById('btn-user-avatar');
+        const navAdmin = document.getElementById('nav-admin');
 
         if (session && session.user) {
             const meta = session.user.user_metadata || {};
@@ -206,11 +350,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (modalImg && avatar) modalImg.src = avatar;
             if (modalName) modalName.innerText = name;
-            if (modalEmail) modalEmail.innerText = email; // ← Gmail real
+            if (modalEmail) modalEmail.innerText = email;
+
+            if (navAdmin) {
+                if (isAdmin(email)) {
+                    navAdmin.classList.remove('hidden');
+                } else {
+                    navAdmin.classList.add('hidden');
+                }
+            }
+
+            loadUserPlanFromDB();
         } else {
             if (btnLogout) btnLogout.classList.add('hidden');
             if (btnLoginEl) btnLoginEl.classList.remove('hidden');
             if (btnAvatar) btnAvatar.classList.add('hidden');
+            if (navAdmin) navAdmin.classList.add('hidden');
         }
     });
 });

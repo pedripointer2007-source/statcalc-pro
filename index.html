@@ -193,7 +193,7 @@
                     <h2 id="modal-user-name">Usuario</h2>
                     <p id="modal-user-email">email@correo.com</p>
                     <div class="profile-badges">
-                        <span class="badge-premium">👑 Plan Pro</span>
+                        <span class="badge-premium" id="profile-plan-badge">Plan Gratuito</span>
                         <span class="badge-status">● Activo</span>
                     </div>
                     <div class="profile-stats-mini">
@@ -305,6 +305,16 @@
             <input type="password" id="license-input" class="glass-input" placeholder="Ingresa la contraseña de licencia">
             <button class="btn btn-primary" id="btn-activate-license" style="width:100%; margin-top:10px;">Activar Licencia</button>
         </div>
+
+        <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+    <button class="btn btn-primary" id="btn-request-pro" style="width:100%;">
+        Ya pagué – Solicitar Plan Pro ($3)
+    </button>
+    <button class="btn btn-secondary" id="btn-request-pro-plus" style="width:100%;">
+        Ya pagué – Solicitar Plan Pro Plus ($10)
+    </button>
+</div>
+
     </div>
 </div>
 </body>
